@@ -70,12 +70,19 @@ export default function ImageCompressor() {
     const downloadImage = () => {
         if (!processedImage) return;
 
-        const link = document.createElement('a');
-        link.href = processedImage;
-        link.download = 'transpify-compressed.jpg';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        // Convert base64 to blob with proper MIME type to ensure extension
+        fetch(processedImage)
+            .then(res => res.blob())
+            .then(blob => {
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'transpify-compressed.jpg';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+            });
     };
 
     const formatFileSize = (bytes) => {

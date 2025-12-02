@@ -134,12 +134,19 @@ export default function BackgroundRemover() {
     const downloadImage = () => {
         if (!processedImage) return;
 
-        const link = document.createElement('a');
-        link.href = processedImage;
-        link.download = 'transpify-no-background.png';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        // Convert base64 to blob with proper MIME type to ensure extension
+        fetch(processedImage)
+            .then(res => res.blob())
+            .then(blob => {
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = 'transpify-no-background.png';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+            });
     };
 
     const apiProviders = [
@@ -206,8 +213,8 @@ export default function BackgroundRemover() {
                             <button
                                 onClick={() => setProcessingMode('browser')}
                                 className={`p-4 rounded-xl border-2 transition-all duration-200 text-left ${processingMode === 'browser'
-                                        ? 'border-primary-500 bg-primary-50'
-                                        : 'border-gray-200 hover:border-primary-300'
+                                    ? 'border-primary-500 bg-primary-50'
+                                    : 'border-gray-200 hover:border-primary-300'
                                     }`}
                             >
                                 <div className="flex items-center mb-2">
@@ -229,8 +236,8 @@ export default function BackgroundRemover() {
                             <button
                                 onClick={() => setProcessingMode('api')}
                                 className={`p-4 rounded-xl border-2 transition-all duration-200 text-left ${processingMode === 'api'
-                                        ? 'border-primary-500 bg-primary-50'
-                                        : 'border-gray-200 hover:border-primary-300'
+                                    ? 'border-primary-500 bg-primary-50'
+                                    : 'border-gray-200 hover:border-primary-300'
                                     }`}
                             >
                                 <div className="flex items-center mb-2">
@@ -262,8 +269,8 @@ export default function BackgroundRemover() {
                                             key={provider.id}
                                             onClick={() => setApiProvider(provider.id)}
                                             className={`p-3 rounded-lg border-2 transition-all duration-200 text-left ${apiProvider === provider.id
-                                                    ? 'border-primary-500 bg-primary-50'
-                                                    : 'border-gray-200 hover:border-primary-200'
+                                                ? 'border-primary-500 bg-primary-50'
+                                                : 'border-gray-200 hover:border-primary-200'
                                                 }`}
                                         >
                                             <div className="flex items-start justify-between mb-1">

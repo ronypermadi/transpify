@@ -57,12 +57,19 @@ export default function ImageConverter() {
     const downloadImage = () => {
         if (!processedImage) return;
 
-        const link = document.createElement('a');
-        link.href = processedImage;
-        link.download = `transpify-converted.${outputFormat}`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
+        // Convert base64 to blob with proper MIME type to ensure extension
+        fetch(processedImage)
+            .then(res => res.blob())
+            .then(blob => {
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `transpify-converted.${outputFormat}`;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+                URL.revokeObjectURL(url);
+            });
     };
 
     const formats = [
@@ -126,8 +133,8 @@ export default function ImageConverter() {
                                         key={format.value}
                                         onClick={() => setOutputFormat(format.value)}
                                         className={`p-4 rounded-xl border-2 transition-all duration-200 text-left ${outputFormat === format.value
-                                                ? 'border-primary-500 bg-primary-50'
-                                                : 'border-gray-200 hover:border-primary-300'
+                                            ? 'border-primary-500 bg-primary-50'
+                                            : 'border-gray-200 hover:border-primary-300'
                                             }`}
                                     >
                                         <div className="font-bold text-lg mb-1">{format.label}</div>

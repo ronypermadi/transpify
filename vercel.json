@@ -1,4 +1,3 @@
-```json
 {
     "version": 2,
     "rewrites": [
@@ -32,4 +31,3 @@
         "NODE_ENV": "production"
     }
 }
-```

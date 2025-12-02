@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import axios from 'axios';
 import { Upload, Download, Eraser, AlertCircle, Zap, Cloud, Info, Sparkles, Shield } from 'lucide-react';
@@ -12,6 +12,37 @@ export default function BackgroundRemover() {
     const [processingMode, setProcessingMode] = useState('browser');
     const [apiProvider, setApiProvider] = useState('removebg');
     const [progress, setProgress] = useState('');
+    const [apiStatus, setApiStatus] = useState(null);
+    const [checkingApi, setCheckingApi] = useState(false);
+
+    // Check API status on mount
+    useEffect(() => {
+        const checkApiStatus = async () => {
+            setCheckingApi(true);
+            try {
+                const response = await axios.get('/api/check-api-status');
+                if (response.data.success) {
+                    setApiStatus(response.data.apis);
+
+                    // Auto-select first available API
+                    if (response.data.hasAnyApi) {
+                        const availableApis = Object.keys(response.data.apis).filter(
+                            key => response.data.apis[key].available
+                        );
+                        if (availableApis.length > 0 && !response.data.apis[apiProvider]?.available) {
+                            setApiProvider(availableApis[0]);
+                        }
+                    }
+                }
+            } catch (err) {
+                console.error('Failed to check API status:', err);
+            } finally {
+                setCheckingApi(false);
+            }
+        };
+
+        checkApiStatus();
+    }, []);
 
     const onDrop = useCallback((acceptedFiles) => {
         const file = acceptedFiles[0];
@@ -268,36 +299,58 @@ export default function BackgroundRemover() {
                         {/* API Provider Selector */}
                         {processingMode === 'api' && (
                             <div className="border-t pt-6">
-                                <h4 className="font-semibold mb-3 text-gray-800 flex items-center">
-                                    <Sparkles className="w-5 h-5 mr-2 text-primary-600" />
-                                    Pilih API Provider
-                                </h4>
+                                <div className="flex items-center justify-between mb-3">
+                                    <h4 className="font-semibold text-gray-800 flex items-center">
+                                        <Sparkles className="w-5 h-5 mr-2 text-primary-600" />
+                                        Pilih API Provider
+                                    </h4>
+                                    {checkingApi && <span className="text-xs text-gray-500 animate-pulse">Checking availability...</span>}
+                                </div>
+
+                                {/* Warning if no APIs available */}
+                                {apiStatus && !Object.values(apiStatus).some(api => api.available) && (
+                                    <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 mb-4 flex items-start">
+                                        <AlertCircle className="w-4 h-4 text-yellow-600 mr-2 mt-0.5 flex-shrink-0" />
+                                        <div className="text-xs text-yellow-800">
+                                            <p className="font-medium mb-1">No API Keys Configured</p>
+                                            <p>Please configure API keys in Vercel environment variables to use API mode.</p>
+                                        </div>
+                                    </div>
+                                )}
+
                                 <div className="grid sm:grid-cols-2 gap-3">
-                                    {apiProviders.map((provider) => (
-                                        <button
-                                            key={provider.id}
-                                            onClick={() => setApiProvider(provider.id)}
-                                            className={`p-3 rounded-lg border-2 transition-all duration-200 text-left ${apiProvider === provider.id
-                                                ? 'border-primary-500 bg-primary-50'
-                                                : 'border-gray-200 hover:border-primary-200'
-                                                }`}
-                                        >
-                                            <div className="flex items-start justify-between mb-1">
-                                                <span className="font-bold text-sm">{provider.name}</span>
-                                                <span className={`text-xs px-2 py-0.5 rounded-full ${provider.badgeColor}`}>
-                                                    {provider.badge}
-                                                </span>
-                                            </div>
-                                            <p className="text-xs text-gray-600 mb-2">{provider.description}</p>
-                                            <div className="flex flex-wrap gap-1">
-                                                {provider.features.map((feature, idx) => (
-                                                    <span key={idx} className="text-xs text-gray-500">
-                                                        {feature}{idx < provider.features.length - 1 ? ' •' : ''}
+                                    {apiProviders.map((provider) => {
+                                        const isAvailable = apiStatus ? apiStatus[provider.id]?.available : false;
+                                        const isSelected = apiProvider === provider.id;
+
+                                        return (
+                                            <button
+                                                key={provider.id}
+                                                onClick={() => isAvailable && setApiProvider(provider.id)}
+                                                disabled={!isAvailable}
+                                                className={`p-3 rounded-lg border-2 transition-all duration-200 text-left relative ${isSelected
+                                                        ? 'border-primary-500 bg-primary-50'
+                                                        : 'border-gray-200 hover:border-primary-200'
+                                                    } ${!isAvailable ? 'opacity-60 cursor-not-allowed bg-gray-50 hover:border-gray-200' : ''}`}
+                                            >
+                                                <div className="flex items-start justify-between mb-1">
+                                                    <span className="font-bold text-sm">{provider.name}</span>
+                                                    <span className={`text-xs px-2 py-0.5 rounded-full ${isAvailable ? provider.badgeColor : 'bg-gray-200 text-gray-600'
+                                                        }`}>
+                                                        {isAvailable ? provider.badge : 'Not Configured'}
                                                     </span>
-                                                ))}
-                                            </div>
-                                        </button>
-                                    ))}
+                                                </div>
+                                                <p className="text-xs text-gray-600 mb-2">{provider.description}</p>
+                                                <div className="flex flex-wrap gap-1">
+                                                    {provider.features.map((feature, idx) => (
+                                                        <span key={idx} className="text-xs text-gray-500">
+                                                            {feature}{idx < provider.features.length - 1 ? ' •' : ''}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            </button>
+                                        );
+                                    })}
                                 </div>
 
                                 {/* Security Info */}

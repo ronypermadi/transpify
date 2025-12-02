@@ -370,3 +370,10 @@ Dikembangkan dengan ❤️ menggunakan React, Vite, dan Tailwind CSS
 ---
 
 **Happy Image Editing! 🎨✨**
+
+## 🔄 Auto-Deploy Configuration
+
+Project is now connected to GitHub for automatic deployments.
+Every push to main branch will trigger a new production deployment.
+
+**Last Updated:** Tue Dec  2 12:23:22 PM WIB 2025

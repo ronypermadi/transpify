@@ -134,18 +134,27 @@ export default function BackgroundRemover() {
     const downloadImage = () => {
         if (!processedImage) return;
 
-        // Convert base64 to blob with proper MIME type to ensure extension
-        fetch(processedImage)
+        // Convert base64 to blob with explicit MIME type
+        const base64Response = fetch(processedImage);
+        base64Response
             .then(res => res.blob())
             .then(blob => {
-                const url = URL.createObjectURL(blob);
+                // Create new blob with explicit MIME type for PNG
+                const pngBlob = new Blob([blob], { type: 'image/png' });
+                const url = URL.createObjectURL(pngBlob);
                 const link = document.createElement('a');
                 link.href = url;
                 link.download = 'transpify-no-background.png';
+                link.setAttribute('download', 'transpify-no-background.png'); // Force download
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
-                URL.revokeObjectURL(url);
+
+                // Cleanup
+                setTimeout(() => URL.revokeObjectURL(url), 100);
+            })
+            .catch(err => {
+                console.error('Download error:', err);
             });
     };
 

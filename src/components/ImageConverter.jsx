@@ -57,18 +57,35 @@ export default function ImageConverter() {
     const downloadImage = () => {
         if (!processedImage) return;
 
-        // Convert base64 to blob with proper MIME type to ensure extension
+        // Map format to MIME type
+        const mimeTypes = {
+            'png': 'image/png',
+            'jpeg': 'image/jpeg',
+            'webp': 'image/webp',
+            'avif': 'image/avif'
+        };
+
+        // Convert base64 to blob with explicit MIME type
         fetch(processedImage)
             .then(res => res.blob())
             .then(blob => {
-                const url = URL.createObjectURL(blob);
+                // Create new blob with explicit MIME type
+                const typedBlob = new Blob([blob], { type: mimeTypes[outputFormat] || 'image/png' });
+                const url = URL.createObjectURL(typedBlob);
                 const link = document.createElement('a');
                 link.href = url;
-                link.download = `transpify-converted.${outputFormat}`;
+                const filename = `transpify-converted.${outputFormat}`;
+                link.download = filename;
+                link.setAttribute('download', filename); // Force download
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
-                URL.revokeObjectURL(url);
+
+                // Cleanup
+                setTimeout(() => URL.revokeObjectURL(url), 100);
+            })
+            .catch(err => {
+                console.error('Download error:', err);
             });
     };
 

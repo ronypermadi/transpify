@@ -70,18 +70,26 @@ export default function ImageCompressor() {
     const downloadImage = () => {
         if (!processedImage) return;
 
-        // Convert base64 to blob with proper MIME type to ensure extension
+        // Convert base64 to blob with explicit MIME type
         fetch(processedImage)
             .then(res => res.blob())
             .then(blob => {
-                const url = URL.createObjectURL(blob);
+                // Create new blob with explicit MIME type for JPEG
+                const jpegBlob = new Blob([blob], { type: 'image/jpeg' });
+                const url = URL.createObjectURL(jpegBlob);
                 const link = document.createElement('a');
                 link.href = url;
                 link.download = 'transpify-compressed.jpg';
+                link.setAttribute('download', 'transpify-compressed.jpg'); // Force download
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
-                URL.revokeObjectURL(url);
+
+                // Cleanup
+                setTimeout(() => URL.revokeObjectURL(url), 100);
+            })
+            .catch(err => {
+                console.error('Download error:', err);
             });
     };
 

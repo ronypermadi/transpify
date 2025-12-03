@@ -20,8 +20,8 @@ export default async function handler(req, res) {
         const base64Data = image.replace(/^data:image\/\w+;base64,/, '');
         const buffer = Buffer.from(base64Data, 'base64');
 
-        // Get image metadata
-        const metadata = await sharp(buffer).metadata();
+        // Get image metadata (with auto-rotation for EXIF)
+        const metadata = await sharp(buffer).rotate().metadata();
 
         // Calculate actual pixel values from percentages if needed
         const extractOptions = {
@@ -37,8 +37,9 @@ export default async function handler(req, res) {
         extractOptions.width = Math.max(1, Math.min(extractOptions.width, metadata.width - extractOptions.left));
         extractOptions.height = Math.max(1, Math.min(extractOptions.height, metadata.height - extractOptions.top));
 
-        // Crop the image
+        // Crop the image (with auto-rotation for EXIF)
         const croppedBuffer = await sharp(buffer)
+            .rotate()
             .extract(extractOptions)
             .toBuffer();
 

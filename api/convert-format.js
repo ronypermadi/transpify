@@ -20,8 +20,8 @@ export default async function handler(req, res) {
         const base64Data = image.replace(/^data:image\/\w+;base64,/, '');
         const buffer = Buffer.from(base64Data, 'base64');
 
-        // Initialize sharp instance
-        let sharpInstance = sharp(buffer);
+        // Initialize sharp instance with auto-rotation based on EXIF
+        let sharpInstance = sharp(buffer).rotate();
 
         // Convert to specified format with optimized settings
         let processedBuffer;

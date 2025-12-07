@@ -190,37 +190,58 @@ export default function BackgroundRemover() {
     };
 
     const apiProviders = [
+        // FREE TIER
+        {
+            id: 'huggingface',
+            name: 'Hugging Face',
+            description: 'Free tier - Good quality untuk testing & development',
+            badge: 'Free',
+            badgeColor: 'bg-emerald-100 text-emerald-800',
+            tier: 'free',
+            pricing: '✓ Unlimited (rate limited)',
+            features: ['No credit card', 'Good quality', 'May be slower'],
+        },
+        // PREMIUM TIER
         {
             id: 'removebg',
             name: 'Remove.bg',
-            description: 'API profesional dengan akurasi tinggi',
-            badge: 'Recommended',
-            badgeColor: 'bg-green-100 text-green-800',
-            features: ['Akurasi tinggi', 'Cepat', 'Production ready'],
+            description: 'Premium - Akurasi tinggi untuk production',
+            badge: 'Premium',
+            badgeColor: 'bg-blue-100 text-blue-800',
+            tier: 'premium',
+            pricing: '50 free/mo, $0.20/img',
+            features: ['High accuracy', 'Fast processing', 'Production ready'],
         },
         {
             id: 'clipdrop',
             name: 'ClipDrop',
-            description: 'Stability AI - kualitas terbaik',
-            badge: 'Premium',
+            description: 'Premium - Kualitas terbaik dari Stability AI',
+            badge: 'Premium+',
             badgeColor: 'bg-purple-100 text-purple-800',
-            features: ['Kualitas terbaik', 'Detail presisi', 'Professional'],
+            tier: 'premium',
+            pricing: 'From $0.03/image',
+            features: ['Best quality', 'Detail precision', 'Professional'],
         },
+        // EXPERIMENTAL
         {
             id: 'gemini',
             name: 'Gemini Vision',
-            description: 'Google AI (experimental - analysis only)',
+            description: 'Experimental - Image analysis only (demo)',
             badge: 'Experimental',
             badgeColor: 'bg-orange-100 text-orange-800',
-            features: ['AI terbaru', 'Demo only', 'Not production'],
+            tier: 'experimental',
+            pricing: 'Pay per use',
+            features: ['AI analysis', 'Demo only', 'Not for removal'],
         },
         {
             id: 'openai',
             name: 'OpenAI Vision',
-            description: 'GPT-4 Vision (experimental - analysis only)',
+            description: 'Experimental - Image analysis only (demo)',
             badge: 'Experimental',
             badgeColor: 'bg-yellow-100 text-yellow-800',
-            features: ['GPT-4 Vision', 'Demo only', 'Not production'],
+            tier: 'experimental',
+            pricing: 'Pay per use',
+            features: ['GPT-4 Vision', 'Demo only', 'Not for removal'],
         },
     ];
 
@@ -329,18 +350,25 @@ export default function BackgroundRemover() {
                                                 onClick={() => isAvailable && setApiProvider(provider.id)}
                                                 disabled={!isAvailable}
                                                 className={`p-3 rounded-lg border-2 transition-all duration-200 text-left relative ${isSelected
-                                                        ? 'border-primary-500 bg-primary-50'
+                                                        ? 'border-primary-500 bg-primary-50 shadow-sm'
                                                         : 'border-gray-200 hover:border-primary-200'
                                                     } ${!isAvailable ? 'opacity-60 cursor-not-allowed bg-gray-50 hover:border-gray-200' : ''}`}
                                             >
                                                 <div className="flex items-start justify-between mb-1">
                                                     <span className="font-bold text-sm">{provider.name}</span>
-                                                    <span className={`text-xs px-2 py-0.5 rounded-full ${isAvailable ? provider.badgeColor : 'bg-gray-200 text-gray-600'
-                                                        }`}>
+                                                    <span
+                                                        className={`text-xs px-2 py-0.5 rounded-full ${isAvailable ? provider.badgeColor : 'bg-gray-200 text-gray-600'
+                                                            }`}
+                                                    >
                                                         {isAvailable ? provider.badge : 'Not Configured'}
                                                     </span>
                                                 </div>
-                                                <p className="text-xs text-gray-600 mb-2">{provider.description}</p>
+                                                <p className="text-xs text-gray-600 mb-1.5">{provider.description}</p>
+                                                {provider.pricing && (
+                                                    <p className="text-xs font-medium text-primary-700 mb-2">
+                                                        💰 {provider.pricing}
+                                                    </p>
+                                                )}
                                                 <div className="flex flex-wrap gap-1">
                                                     {provider.features.map((feature, idx) => (
                                                         <span key={idx} className="text-xs text-gray-500">

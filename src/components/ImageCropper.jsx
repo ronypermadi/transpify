@@ -132,11 +132,15 @@ export default function ImageCropper() {
     };
 
     const aspectRatios = [
-        { label: 'Bebas', value: null },
-        { label: '1:1', value: 1 },
-        { label: '16:9', value: 16 / 9 },
-        { label: '4:3', value: 4 / 3 },
-        { label: '3:2', value: 3 / 2 },
+        { label: 'Free', value: null, icon: '✂️' },
+        { label: '1:1', value: 1, icon: '⬜', desc: 'Square / Instagram Post' },
+        { label: '4:5', value: 4 / 5, icon: '📱', desc: 'Instagram Portrait' },
+        { label: '9:16', value: 9 / 16, icon: '📲', desc: 'Instagram Story / Reels' },
+        { label: '16:9', value: 16 / 9, icon: '🎬', desc: 'YouTube / Twitter / Widescreen' },
+        { label: '4:3', value: 4 / 3, icon: '🖼️', desc: 'Classic Photo' },
+        { label: '3:2', value: 3 / 2, icon: '📷', desc: 'DSLR Standard' },
+        { label: '1.91:1', value: 1.91, icon: '📰', desc: 'Facebook Link' },
+        { label: '4:1', value: 4, icon: '🏢', desc: 'LinkedIn Banner' },
     ];
 
     return (
@@ -186,18 +190,27 @@ export default function ImageCropper() {
                     <div className="space-y-6">
                         {/* Aspect Ratio Selection */}
                         <div className="card">
-                            <h3 className="text-xl font-semibold mb-4 text-gray-800">Aspect Ratio</h3>
-                            <div className="flex flex-wrap gap-3">
+                            <h3 className="text-xl font-semibold mb-4 text-gray-800">Aspect Ratio Presets</h3>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                                 {aspectRatios.map((ratio) => (
                                     <button
                                         key={ratio.label}
                                         onClick={() => setAspectRatioPreset(ratio.value)}
-                                        className={`px-4 py-2 rounded-lg font-medium transition-all duration-200 ${aspectRatio === ratio.value
-                                                ? 'bg-primary-600 text-white'
+                                        className={`p-3 rounded-lg font-medium transition-all duration-200 text-left ${aspectRatio === ratio.value
+                                                ? 'bg-primary-600 text-white shadow-sm'
                                                 : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                                             }`}
                                     >
-                                        {ratio.label}
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <span className="text-lg">{ratio.icon}</span>
+                                            <span className="font-bold">{ratio.label}</span>
+                                        </div>
+                                        {ratio.desc && (
+                                            <div className={`text-xs ${aspectRatio === ratio.value ? 'text-white/90' : 'text-gray-600'
+                                                }`}>
+                                                {ratio.desc}
+                                            </div>
+                                        )}
                                     </button>
                                 ))}
                             </div>

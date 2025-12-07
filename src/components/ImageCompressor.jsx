@@ -155,10 +155,35 @@ export default function ImageCompressor() {
                             <h3 className="text-xl font-semibold mb-4 text-gray-800">Pengaturan</h3>
 
                             <div className="space-y-6">
-                                {/* Quality Slider */}
+                                {/* Quality Presets */}
                                 <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-3">
+                                        Quality Presets
+                                    </label>
+                                    <div className="grid grid-cols-4 gap-2 mb-4">
+                                        {[
+                                            { label: 'Low', value: 50, desc: 'Smallest' },
+                                            { label: 'Medium', value: 70, desc: 'Balanced' },
+                                            { label: 'High', value: 85, desc: 'Recommended' },
+                                            { label: 'Max', value: 95, desc: 'Best' },
+                                        ].map((preset) => (
+                                            <button
+                                                key={preset.value}
+                                                onClick={() => setQuality(preset.value)}
+                                                className={`p-2 rounded-lg text-center transition-all ${quality === preset.value
+                                                    ? 'bg-primary-600 text-white shadow-sm'
+                                                    : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                                                    }`}
+                                            >
+                                                <div className="font-semibold text-sm">{preset.label}</div>
+                                                <div className="text-xs opacity-80">{preset.desc}</div>
+                                            </button>
+                                        ))}
+                                    </div>
+
+                                    {/* Quality Slider */}
                                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                                        Kualitas: {quality}%
+                                        Custom Quality: {quality}%
                                     </label>
                                     <input
                                         type="range"
@@ -169,8 +194,8 @@ export default function ImageCompressor() {
                                         className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary-600"
                                     />
                                     <div className="flex justify-between text-xs text-gray-500 mt-1">
-                                        <span>Rendah (10%)</span>
-                                        <span>Tinggi (100%)</span>
+                                        <span>10% (Smallest)</span>
+                                        <span>100% (Original)</span>
                                     </div>
                                 </div>
 
@@ -259,11 +284,23 @@ export default function ImageCompressor() {
                                     )}
                                 </div>
                                 {processedImage && (
-                                    <div className="space-y-1">
-                                        <p className="text-sm text-gray-600">Ukuran: {formatFileSize(processedSize)}</p>
-                                        <p className="text-sm font-semibold text-green-600">
-                                            Hemat {compressionRatio}%
-                                        </p>
+                                    <div className="space-y-2 p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg border border-green-200">
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-sm text-gray-700">Ukuran:</span>
+                                            <span className="text-sm font-semibold text-gray-900">
+                                                {formatFileSize(processedSize)}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                            <span className="text-sm text-gray-700">Hemat:</span>
+                                            <span className="text-lg font-bold text-green-600">
+                                                {compressionRatio}%
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center justify-between text-xs text-gray-600">
+                                            <span>Original:</span>
+                                            <span>{formatFileSize(originalSize)}</span>
+                                        </div>
                                     </div>
                                 )}
                             </div>

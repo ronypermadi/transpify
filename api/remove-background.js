@@ -48,14 +48,64 @@ export default async function handler(req, res) {
 
         let result;
 
+
         // Handle different providers
         switch (provider) {
+            case 'huggingface': {
+                const apiKey = process.env.HUGGINGFACE_API_KEY;
+
+                if (!apiKey) {
+                    return res.status(500).json({
+                        error: 'Hugging Face API key not configured on server.',
+                        tier: 'free'
+                    });
+                }
+
+                try {
+                    // Using Hugging Face Inference API for background removal
+                    // Model: briaai/RMBG-1.4 (free, good quality)
+                    const response = await axios.post(
+                        'https://api-inference.huggingface.co/models/briaai/RMBG-1.4',
+                        buffer,
+                        {
+                            headers: {
+                                'Authorization': `Bearer ${apiKey}`,
+                                'Content-Type': 'application/octet-stream',
+                            },
+                            responseType: 'arraybuffer',
+                            timeout: 45000, // Hugging Face can be slower
+                        }
+                    );
+
+                    const resultBase64 = Buffer.from(response.data, 'binary').toString('base64');
+                    result = {
+                        success: true,
+                        image: `data:image/png;base64,${resultBase64}`,
+                        provider: 'huggingface',
+                        tier: 'free',
+                        note: 'Free tier - may be slower during peak times'
+                    };
+                } catch (error) {
+                    // Handle Hugging Face specific errors
+                    if (error.response?.status === 503) {
+                        return res.status(503).json({
+                            error: 'Model is loading. Please try again in 20 seconds.',
+                            tier: 'free',
+                            retryAfter: 20
+                        });
+                    }
+                    throw error;
+                }
+                break;
+            }
+
             case 'removebg': {
                 const apiKey = process.env.REMOVE_BG_API_KEY;
 
                 if (!apiKey) {
                     return res.status(500).json({
-                        error: 'Remove.bg API key not configured on server.'
+                        error: 'Remove.bg API key not configured on server.',
+                        tier: 'premium'
                     });
                 }
 
@@ -77,6 +127,7 @@ export default async function handler(req, res) {
                     success: true,
                     image: `data:image/png;base64,${resultBase64}`,
                     provider: 'removebg',
+                    tier: 'premium'
                 };
                 break;
             }
@@ -86,7 +137,8 @@ export default async function handler(req, res) {
 
                 if (!apiKey) {
                     return res.status(500).json({
-                        error: 'ClipDrop API key not configured on server.'
+                        error: 'ClipDrop API key not configured on server.',
+                        tier: 'premium'
                     });
                 }
 
@@ -111,6 +163,7 @@ export default async function handler(req, res) {
                     success: true,
                     image: `data:image/png;base64,${resultBase64}`,
                     provider: 'clipdrop',
+                    tier: 'premium'
                 };
                 break;
             }

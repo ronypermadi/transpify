@@ -90,10 +90,42 @@ export default function ImageConverter() {
     };
 
     const formats = [
-        { value: 'png', label: 'PNG', description: 'Lossless, mendukung transparansi' },
-        { value: 'jpeg', label: 'JPEG', description: 'Ukuran kecil, tidak ada transparansi' },
-        { value: 'webp', label: 'WebP', description: 'Modern, ukuran kecil dengan kualitas bagus' },
-        { value: 'avif', label: 'AVIF', description: 'Format terbaru, kompresi sangat baik' },
+        {
+            value: 'png',
+            label: 'PNG',
+            description: 'Lossless, mendukung transparansi',
+            useCase: 'Best for: Graphics, logos, transparent images',
+            browserSupport: '✓ All browsers',
+            icon: '🖼️',
+            features: ['Transparency', 'Lossless', 'Larger files'],
+        },
+        {
+            value: 'jpeg',
+            label: 'JPEG',
+            description: 'Ukuran kecil, ideal untuk foto',
+            useCase: 'Best for: Photos, images without transparency',
+            browserSupport: '✓ All browsers',
+            icon: '📷',
+            features: ['Smallest size', 'No transparency', 'Lossy'],
+        },
+        {
+            value: 'webp',
+            label: 'WebP',
+            description: 'Modern, ukuran kecil dengan kualitas bagus',
+            useCase: 'Best for: Web, modern browsers, balanced quality/size',
+            browserSupport: '✓ Chrome, Firefox, Edge',
+            icon: '🌐',
+            features: ['Small size', 'Good quality', 'Transparency'],
+        },
+        {
+            value: 'avif',
+            label: 'AVIF',
+            description: 'Next-gen format, kompresi sangat baik',
+            useCase: 'Best for: Cutting-edge web, smallest files',
+            browserSupport: '✓ Chrome, Firefox (limited)',
+            icon: '⚡',
+            features: ['Smallest size', 'Best quality', 'New format'],
+        },
     ];
 
     return (
@@ -144,18 +176,35 @@ export default function ImageConverter() {
                         {/* Format Selection */}
                         <div className="card">
                             <h3 className="text-xl font-semibold mb-4 text-gray-800">Pilih Format Output</h3>
-                            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div className="grid sm:grid-cols-2 gap-4">
                                 {formats.map((format) => (
                                     <button
                                         key={format.value}
                                         onClick={() => setOutputFormat(format.value)}
                                         className={`p-4 rounded-xl border-2 transition-all duration-200 text-left ${outputFormat === format.value
-                                            ? 'border-primary-500 bg-primary-50'
-                                            : 'border-gray-200 hover:border-primary-300'
+                                                ? 'border-primary-500 bg-primary-50 shadow-sm'
+                                                : 'border-gray-200 hover:border-primary-300'
                                             }`}
                                     >
-                                        <div className="font-bold text-lg mb-1">{format.label}</div>
-                                        <div className="text-sm text-gray-600">{format.description}</div>
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <span className="text-2xl">{format.icon}</span>
+                                            <span className="font-bold text-lg">{format.label}</span>
+                                        </div>
+                                        <div className="text-sm text-gray-600 mb-2">{format.description}</div>
+                                        <div className="text-xs text-primary-700 font-medium mb-2">
+                                            {format.useCase}
+                                        </div>
+                                        <div className="text-xs text-gray-500 mb-2">
+                                            {format.browserSupport}
+                                        </div>
+                                        <div className="flex flex-wrap gap-1">
+                                            {format.features?.map((feature, idx) => (
+                                                <span key={idx} className="text-xs text-gray-500">
+                                                    {feature}
+                                                    {idx < format.features.length - 1 ? ' •' : ''}
+                                                </span>
+                                            ))}
+                                        </div>
                                     </button>
                                 ))}
                             </div>

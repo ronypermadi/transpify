@@ -13,7 +13,7 @@ export default function ImageCompressor() {
     const [processedSize, setProcessedSize] = useState(0);
 
     // Settings
-    const [quality, setQuality] = useState(80);
+    const [quality, setQuality] = useState(90);
     const [width, setWidth] = useState('');
     const [height, setHeight] = useState('');
     const [usePercentage, setUsePercentage] = useState(false);

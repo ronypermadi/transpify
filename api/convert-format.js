@@ -32,6 +32,7 @@ export default async function handler(req, res) {
                     .png({
                         compressionLevel: 9,
                         adaptiveFiltering: true,
+                        palette: true, // Use palette for smaller file size when possible
                     })
                     .toBuffer();
                 break;
@@ -39,8 +40,10 @@ export default async function handler(req, res) {
             case 'jpeg':
                 processedBuffer = await sharpInstance
                     .jpeg({
-                        quality: 90,
+                        quality: 95,
+                        progressive: true,
                         mozjpeg: true,
+                        optimizeScans: true,
                     })
                     .toBuffer();
                 break;
@@ -48,8 +51,9 @@ export default async function handler(req, res) {
             case 'webp':
                 processedBuffer = await sharpInstance
                     .webp({
-                        quality: 90,
+                        quality: 95,
                         effort: 6, // Higher effort for better compression
+                        smartSubsample: true, // Better quality subsampling
                     })
                     .toBuffer();
                 break;
@@ -57,8 +61,9 @@ export default async function handler(req, res) {
             case 'avif':
                 processedBuffer = await sharpInstance
                     .avif({
-                        quality: 90,
+                        quality: 95,
                         effort: 6,
+                        chromaSubsampling: '4:4:4', // Best quality chroma
                     })
                     .toBuffer();
                 break;

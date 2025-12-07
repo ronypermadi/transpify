@@ -10,6 +10,7 @@
     "lint": "eslint src --ext js,jsx"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@imgly/background-removal": "^1.7.0",
     "axios": "^1.6.2",
     "lucide-react": "^0.294.0",

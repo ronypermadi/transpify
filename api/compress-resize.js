@@ -43,8 +43,10 @@ export default async function handler(req, res) {
         // Apply compression and convert to JPEG
         const processedBuffer = await sharpInstance
             .jpeg({
-                quality: quality || 80,
+                quality: quality || 90,
+                progressive: true, // Progressive JPEG for better quality
                 mozjpeg: true, // Use mozjpeg for better compression
+                optimizeScans: true, // Optimize progressive scans
             })
             .toBuffer();
 

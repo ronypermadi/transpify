@@ -294,24 +294,22 @@ export default function BackgroundRemover() {
                             </button>
 
                             {/* API Mode */}
+                            {/* API Mode */}
                             <button
-                                onClick={() => setProcessingMode('api')}
-                                className={`p-4 rounded-xl border-2 transition-all duration-200 text-left ${processingMode === 'api'
-                                    ? 'border-primary-500 bg-primary-50'
-                                    : 'border-gray-200 hover:border-primary-300'
-                                    }`}
+                                disabled
+                                className="p-4 rounded-xl border-2 border-gray-200 bg-gray-50 text-left cursor-not-allowed opacity-75"
                             >
                                 <div className="flex items-center mb-2">
-                                    <Cloud className="w-5 h-5 mr-2 text-blue-600" />
-                                    <span className="font-bold text-lg">API Mode</span>
-                                    <span className="ml-auto text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-                                        Secure Backend
+                                    <Cloud className="w-5 h-5 mr-2 text-gray-400" />
+                                    <span className="font-bold text-lg text-gray-500">API Mode</span>
+                                    <span className="ml-auto text-xs bg-amber-100 text-amber-800 px-2 py-1 rounded-full">
+                                        Coming Soon
                                     </span>
                                 </div>
-                                <p className="text-sm text-gray-600 mb-2">
+                                <p className="text-sm text-gray-500 mb-2">
                                     API cloud dengan keamanan tinggi. Keys tersimpan di server.
                                 </p>
-                                <div className="text-xs text-gray-500">
+                                <div className="text-xs text-gray-400">
                                     ✓ Secure backend • ✓ High quality • ✓ 4 provider options
                                 </div>
                             </button>
@@ -350,8 +348,8 @@ export default function BackgroundRemover() {
                                                 onClick={() => isAvailable && setApiProvider(provider.id)}
                                                 disabled={!isAvailable}
                                                 className={`p-3 rounded-lg border-2 transition-all duration-200 text-left relative ${isSelected
-                                                        ? 'border-primary-500 bg-primary-50 shadow-sm'
-                                                        : 'border-gray-200 hover:border-primary-200'
+                                                    ? 'border-primary-500 bg-primary-50 shadow-sm'
+                                                    : 'border-gray-200 hover:border-primary-200'
                                                     } ${!isAvailable ? 'opacity-60 cursor-not-allowed bg-gray-50 hover:border-gray-200' : ''}`}
                                             >
                                                 <div className="flex items-start justify-between mb-1">

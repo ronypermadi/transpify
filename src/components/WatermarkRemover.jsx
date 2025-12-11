@@ -79,31 +79,47 @@ export default function WatermarkRemover() {
 
     // Initialize/Resize canvas when image loads or window resizes
     useEffect(() => {
-        if (!image || !canvasRef.current || !containerRef.current) return;
+        if (!image || !canvasRef.current || !containerRef.current || !imageRef.current) return;
 
         const canvas = canvasRef.current;
-        const ctx = canvas.getContext('2d');
-        const container = containerRef.current;
+        const imgElement = imageRef.current;
 
-        // Calculate aspect ratio fit
-        const containerWidth = container.clientWidth;
-        const containerHeight = 600; // Max height
+        // Function to update canvas size to match rendered image size exactly
+        const updateDimensions = () => {
+            // We use the rendered width/height of the img element
+            // This ensures 1:1 mapping between visual space and canvas buffer
+            const rect = imgElement.getBoundingClientRect();
 
-        const scale = Math.min(
-            containerWidth / imageDimensions.width,
-            containerHeight / imageDimensions.height
-        );
+            // Check if image is actually loaded and has size
+            if (rect.width > 0 && rect.height > 0) {
+                canvas.width = rect.width;
+                canvas.height = rect.height;
+            }
+        };
 
-        const displayWidth = imageDimensions.width * scale;
-        const displayHeight = imageDimensions.height * scale;
+        // Update on mount/image change
+        // We need to wait for image to load to get dimensions
+        if (imgElement.complete) {
+            updateDimensions();
+        } else {
+            imgElement.onload = updateDimensions;
+        }
 
-        canvas.width = displayWidth;
-        canvas.height = displayHeight;
+        // Update on resize
+        const resizeObserver = new ResizeObserver(() => {
+            updateDimensions();
+            // Note: resizing clears canvas content. For a production app we might want to save/restore the mask.
+            // For now, clearing is acceptable behavior on resize to avoid distorted masks.
+        });
 
-        // Clear canvas initially (transparent)
-        ctx.clearRect(0, 0, displayWidth, displayHeight);
+        resizeObserver.observe(imgElement);
 
-    }, [image, imageDimensions]);
+        return () => {
+            resizeObserver.disconnect();
+            imgElement.onload = null;
+        };
+
+    }, [image]);
 
     // Draw on canvas
     const startDrawing = (e) => {
@@ -170,14 +186,25 @@ export default function WatermarkRemover() {
             srcCtx.drawImage(img, 0, 0);
             const srcImageData = srcCtx.getImageData(0, 0, imageDimensions.width, imageDimensions.height);
 
-            // 2. Get Mask Data (Scaled up from display canvas)
+            // 2. Get Mask Data
+            // The canvasRef contains the mask at displayed resolution (rect.width/height)
+            // The image is at imageDimensions.width/height
+            // We need to scale the mask from Display Size -> Original Size
+
             const maskCanvas = document.createElement('canvas');
             maskCanvas.width = imageDimensions.width;
             maskCanvas.height = imageDimensions.height;
             const maskCtx = maskCanvas.getContext('2d');
 
             // Draw the display canvas content scaled up
-            maskCtx.drawImage(canvasRef.current, 0, 0, imageDimensions.width, imageDimensions.height);
+            // canvasRef.current.width is the current display width (e.g. 500)
+            // imageDimensions.width is the original width (e.g. 2000)
+
+            maskCtx.drawImage(
+                canvasRef.current,
+                0, 0, canvasRef.current.width, canvasRef.current.height, // Source rect
+                0, 0, imageDimensions.width, imageDimensions.height // Dest rect
+            );
 
             // Convert red strokes to Grayscale mask for OpenCV
             // Pixels > 0 alpha should be white (255), else black (0)

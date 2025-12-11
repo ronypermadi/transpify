@@ -1,22 +1,55 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Upload, Download, Eraser, RefreshCw, Sparkles, AlertCircle } from 'lucide-react';
-import axios from 'axios';
+import { Upload, Download, Eraser, Sparkles, AlertCircle, Wand2 } from 'lucide-react';
 
 export default function WatermarkRemover() {
     const [image, setImage] = useState(null);
     const [result, setResult] = useState(null);
     const [isProcessing, setIsProcessing] = useState(false);
+    const [processingTime, setProcessingTime] = useState(0);
     const [error, setError] = useState(null);
     const [brushSize, setBrushSize] = useState(20);
+    const [inpaintRadius, setInpaintRadius] = useState(3);
     const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 });
     const [isDrawing, setIsDrawing] = useState(false);
     const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
+    const [isOpenCVReady, setIsOpenCVReady] = useState(false);
 
     // Canvas refs
     const canvasRef = useRef(null);
     const imageRef = useRef(null);
     const containerRef = useRef(null);
+
+    // Load OpenCV.js
+    useEffect(() => {
+        if (window.cv) {
+            setIsOpenCVReady(true);
+            return;
+        }
+
+        const script = document.createElement('script');
+        script.src = 'https://docs.opencv.org/4.8.0/opencv.js';
+        script.async = true;
+        script.onload = () => {
+            // OpenCV.js specific logic to wait for initialization
+            // Usually cv is ready shortly after load, but for safety we can use onRuntimeInitialized if available
+            if (window.cv.getBuildInformation) {
+                setIsOpenCVReady(true);
+            } else {
+                window.cv['onRuntimeInitialized'] = () => {
+                    setIsOpenCVReady(true);
+                }
+            }
+        };
+        script.onerror = () => {
+            setError("Failed to load OpenCV.js library. Please check your internet connection.");
+        };
+        document.body.appendChild(script);
+
+        return () => {
+            document.body.removeChild(script);
+        };
+    }, []);
 
     // Handle image upload
     const onDrop = useCallback((acceptedFiles) => {
@@ -112,90 +145,97 @@ export default function WatermarkRemover() {
         }
     };
 
-    // Helper to get raw base64 from current state
-    const getMaskBase64 = () => {
-        const canvas = canvasRef.current;
-        if (!canvas) return null;
-
-        // We need the mask to be same size as original image for API usually, 
-        // OR we send the current canvas and original image resized. 
-        // Better: create a temporary canvas with original dimensions, draw the current mask scaled up.
-
-        const tempCanvas = document.createElement('canvas');
-        tempCanvas.width = imageDimensions.width;
-        tempCanvas.height = imageDimensions.height;
-        const ctx = tempCanvas.getContext('2d');
-
-        // Draw black background (non-masked area)
-        ctx.fillStyle = 'black';
-        ctx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
-
-        // Draw white mask (masked area)
-        // We need to scale drawing commands or simpler: draw the small canvas image onto the big one
-        // BUT the visible canvas is transparent with red strokes.
-        // We want White strokes on Black background for the mask normally used in ML.
-
-        // Let's re-draw the visible canvas content onto the temp canvas but changing colors? 
-        // Hard to do pixel manipulation efficiently.
-        // EASIER: Just use the visible canvas, but Composite it.
-
-        // Option 3: Logic revision.
-        // The display canvas has: Transparent Background + Red Strokes.
-        // We want: Black Background + White Strokes (where Red is).
-
-        ctx.drawImage(canvas, 0, 0, tempCanvas.width, tempCanvas.height);
-
-        // Now use composite operations to turn non-transparent pixels white, and transparent ones black?
-        // Actually, 'source-in' or similar.
-
-        // Simpler approach manually:
-        const imageData = ctx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
-        const data = imageData.data;
-        for (let i = 0; i < data.length; i += 4) {
-            // If alpha > 0 (drawn), make it White (255, 255, 255). Else Black (0, 0, 0).
-            if (data[i + 3] > 0) { // Alpha
-                data[i] = 255;     // R
-                data[i + 1] = 255; // G
-                data[i + 2] = 255; // B
-                data[i + 3] = 255; // Alpha full
-            } else {
-                data[i] = 0;
-                data[i + 1] = 0;
-                data[i + 2] = 0;
-                data[i + 3] = 255; // Opaque Black
-            }
-        }
-        ctx.putImageData(imageData, 0, 0);
-
-        return tempCanvas.toDataURL('image/png');
-    };
-
     const handleRemoveWatermark = async () => {
-        if (!image) return;
+        if (!image || !window.cv || !isOpenCVReady) {
+            setError("OpenCV is not ready yet. Please wait.");
+            return;
+        }
 
         setIsProcessing(true);
         setError(null);
+        const startTime = performance.now();
 
         try {
-            const maskBase64 = getMaskBase64();
+            // 1. Get Source Image Data
+            // We'll create a temporary canvas to get the full-resolution image data
+            const srcCanvas = document.createElement('canvas');
+            srcCanvas.width = imageDimensions.width;
+            srcCanvas.height = imageDimensions.height;
+            const srcCtx = srcCanvas.getContext('2d');
 
-            // Send original image (which might be huge, maybe resize if too big?)
-            // For free APIs, usually < 10MB or 2k res approx is limit.
-            // Let's send original for quality.
+            // Draw original image
+            const img = new Image();
+            img.src = image;
+            await new Promise(r => img.onload = r);
+            srcCtx.drawImage(img, 0, 0);
+            const srcImageData = srcCtx.getImageData(0, 0, imageDimensions.width, imageDimensions.height);
 
-            const response = await axios.post('/api/remove-watermark', {
-                image: image,
-                mask: maskBase64
-            });
+            // 2. Get Mask Data (Scaled up from display canvas)
+            const maskCanvas = document.createElement('canvas');
+            maskCanvas.width = imageDimensions.width;
+            maskCanvas.height = imageDimensions.height;
+            const maskCtx = maskCanvas.getContext('2d');
 
-            if (response.data.success) {
-                setResult(response.data.image);
-            } else {
-                throw new Error(response.data.error || 'Failed to remove watermark');
+            // Draw the display canvas content scaled up
+            maskCtx.drawImage(canvasRef.current, 0, 0, imageDimensions.width, imageDimensions.height);
+
+            // Convert red strokes to Grayscale mask for OpenCV
+            // Pixels > 0 alpha should be white (255), else black (0)
+            const maskImageData = maskCtx.getImageData(0, 0, imageDimensions.width, imageDimensions.height);
+            for (let i = 0; i < maskImageData.data.length; i += 4) {
+                if (maskImageData.data[i + 3] > 0) { // If drawn
+                    maskImageData.data[i] = 255;
+                    maskImageData.data[i + 1] = 255;
+                    maskImageData.data[i + 2] = 255;
+                    maskImageData.data[i + 3] = 255; // Full opacity
+                } else {
+                    maskImageData.data[i] = 0;
+                    maskImageData.data[i + 1] = 0;
+                    maskImageData.data[i + 2] = 0;
+                    maskImageData.data[i + 3] = 255; // Full opacity
+                }
             }
+            maskCtx.putImageData(maskImageData, 0, 0);
+
+            // 3. Create OpenCV Matrices
+            const cv = window.cv;
+            const src = cv.matFromImageData(srcImageData);
+            const mask = cv.matFromImageData(maskImageData);
+            const dst = new cv.Mat();
+
+            // Convert mask to grayscale (required for inpaint)
+            const maskGray = new cv.Mat();
+            cv.cvtColor(mask, maskGray, cv.COLOR_RGBA2GRAY);
+
+            // Convert src to RGB (Remove Alpha if present, usually good for inpaint)
+            // But let's stick to RGBA if possible or Convert to RGB.
+            // cv.inpaint expects 8-bit 1-channel or 3-channel input. RGBA might fail or behave oddly.
+            const srcRGB = new cv.Mat();
+            cv.cvtColor(src, srcRGB, cv.COLOR_RGBA2RGB);
+
+            // 4. Run Inpainting
+            // Algorithm: cv.INPAINT_TELEA (fast) or cv.INPAINT_NS (Navier-Stokes)
+            cv.inpaint(srcRGB, maskGray, dst, inpaintRadius, cv.INPAINT_TELEA);
+
+            // 5. Cleanup & Output
+            const outputCanvas = document.createElement('canvas');
+            outputCanvas.width = imageDimensions.width;
+            outputCanvas.height = imageDimensions.height;
+            cv.imshow(outputCanvas, dst);
+
+            setResult(outputCanvas.toDataURL('image/png'));
+            setProcessingTime(Math.round(performance.now() - startTime));
+
+            // Free memory
+            src.delete();
+            mask.delete();
+            maskGray.delete();
+            srcRGB.delete();
+            dst.delete();
+
         } catch (err) {
             console.error(err);
-            setError(err.response?.data?.error || err.message || 'Something went wrong');
+            setError(err.message || 'Failed to process image');
         } finally {
             setIsProcessing(false);
         }
@@ -206,7 +246,6 @@ export default function WatermarkRemover() {
         if (canvas) {
             const ctx = canvas.getContext('2d');
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            // also clear path history if we added undo/redo
         }
     };
 
@@ -216,9 +255,22 @@ export default function WatermarkRemover() {
                 <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-primary-600 to-accent-600 bg-clip-text text-transparent">
                     Magic Watermark Remover
                 </h1>
-                <p className="text-gray-600 text-lg">
-                    Paint over watermarks or unwanted objects to make them vanish.
+                <p className="text-gray-600 text-lg flex items-center justify-center gap-2">
+                    Client-Side Technology (OpenCV) • No API Key Required • 100% Free
                 </p>
+                {/* OpenCV Loading Indicator */}
+                {!isOpenCVReady && (
+                    <div className="mt-4 inline-flex items-center text-amber-600 bg-amber-50 px-4 py-2 rounded-full text-sm">
+                        <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse mr-2"></div>
+                        Loading AI Library...
+                    </div>
+                )}
+                {isOpenCVReady && (
+                    <div className="mt-4 inline-flex items-center text-green-600 bg-green-50 px-4 py-2 rounded-full text-sm">
+                        <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                        System Ready
+                    </div>
+                )}
             </div>
 
             {!image ? (
@@ -246,11 +298,10 @@ export default function WatermarkRemover() {
                     {/* Editor Section */}
                     <div className="flex-1 space-y-4">
                         <div className="bg-white p-4 rounded-2xl shadow-xl glass border border-white/20">
-                            <div className="flex items-center justify-between mb-4">
+                            <div className="flex flex-wrap items-center justify-between mb-4 gap-4">
                                 <div className="flex items-center space-x-4">
-                                    <h3 className="font-semibold text-gray-700">Editor</h3>
+                                    <h3 className="font-semibold text-gray-700">Brush</h3>
                                     <div className="flex items-center space-x-2 bg-gray-100 px-3 py-1 rounded-full">
-                                        <span className="text-xs text-gray-500 uppercase tracking-wider font-bold">Brush Size</span>
                                         <input
                                             type="range"
                                             min="5"
@@ -258,10 +309,25 @@ export default function WatermarkRemover() {
                                             value={brushSize}
                                             onChange={(e) => setBrushSize(parseInt(e.target.value))}
                                             className="w-24 h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer accent-primary-600"
+                                            title="Brush Size"
                                         />
                                     </div>
                                 </div>
-                                <div className="flex space-x-2">
+                                <div className="flex items-center space-x-4">
+                                    <h3 className="font-semibold text-gray-700">Radius</h3>
+                                    <div className="flex items-center space-x-2 bg-gray-100 px-3 py-1 rounded-full">
+                                        <input
+                                            type="range"
+                                            min="1"
+                                            max="20"
+                                            value={inpaintRadius}
+                                            onChange={(e) => setInpaintRadius(parseInt(e.target.value))}
+                                            className="w-24 h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer accent-primary-600"
+                                            title="Inpaint Radius"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="flex space-x-2 ml-auto">
                                     <button
                                         onClick={handleClearMask}
                                         className="p-2 text-gray-600 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
@@ -277,7 +343,6 @@ export default function WatermarkRemover() {
                                 className="relative overflow-hidden rounded-xl bg-gray-100 cursor-crosshair border border-gray-200"
                                 onMouseMove={(e) => {
                                     draw(e);
-                                    // Custom cursor logic could go here
                                 }}
                                 onMouseDown={startDrawing}
                                 onMouseUp={stopDrawing}
@@ -321,10 +386,10 @@ export default function WatermarkRemover() {
                                 </button>
                                 <button
                                     onClick={handleRemoveWatermark}
-                                    disabled={isProcessing}
+                                    disabled={isProcessing || !isOpenCVReady}
                                     className={`
                                         flex items-center space-x-2 px-8 py-3 rounded-xl font-bold text-white shadow-lg transform transition-all duration-200
-                                        ${isProcessing
+                                        ${isProcessing || !isOpenCVReady
                                             ? 'bg-gray-400 cursor-wait'
                                             : 'bg-gradient-to-r from-primary-600 to-accent-600 hover:scale-105 hover:shadow-xl'
                                         }
@@ -332,13 +397,13 @@ export default function WatermarkRemover() {
                                 >
                                     {isProcessing ? (
                                         <>
-                                            <RefreshCw className="w-5 h-5 animate-spin" />
+                                            <Wand2 className="w-5 h-5 animate-spin" />
                                             <span>Processing...</span>
                                         </>
                                     ) : (
                                         <>
                                             <Sparkles className="w-5 h-5" />
-                                            <span>Remove Watermark</span>
+                                            <span>Remove Object</span>
                                         </>
                                     )}
                                 </button>
@@ -357,7 +422,11 @@ export default function WatermarkRemover() {
                     {result && (
                         <div className="flex-1 animate-slide-up">
                             <div className="bg-white p-4 rounded-2xl shadow-xl glass border border-white/20 h-full">
-                                <h3 className="font-semibold text-gray-700 mb-4 h-8 flex items-center">Result</h3>
+                                <div className="flex justify-between items-center mb-4 h-8">
+                                    <h3 className="font-semibold text-gray-700">Result</h3>
+                                    <span className="text-xs text-gray-400">Processed in {processingTime}ms</span>
+                                </div>
+
                                 <div className="relative rounded-xl overflow-hidden bg-gray-100 border border-gray-200">
                                     <img src={result} alt="Result" className="w-full h-auto" />
                                 </div>

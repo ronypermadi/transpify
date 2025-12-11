@@ -29,6 +29,9 @@ export default function Navbar() {
                         <Link to="/cropper" className="text-gray-700 hover:text-primary-600 font-medium transition-colors duration-200">
                             Cropper
                         </Link>
+                        <Link to="/watermark-remover" className="text-gray-700 hover:text-primary-600 font-medium transition-colors duration-200">
+                            Watermark Remover
+                        </Link>
                     </div>
                 </div>
             </div>

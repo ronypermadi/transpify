@@ -6,6 +6,7 @@ import BackgroundRemover from './components/BackgroundRemover';
 import ImageCompressor from './components/ImageCompressor';
 import ImageConverter from './components/ImageConverter';
 import ImageCropper from './components/ImageCropper';
+import WatermarkRemover from './components/WatermarkRemover';
 
 function App() {
     return (
@@ -18,6 +19,7 @@ function App() {
                     <Route path="/compressor" element={<ImageCompressor />} />
                     <Route path="/converter" element={<ImageConverter />} />
                     <Route path="/cropper" element={<ImageCropper />} />
+                    <Route path="/watermark-remover" element={<WatermarkRemover />} />
                 </Routes>
             </div>
         </Router>

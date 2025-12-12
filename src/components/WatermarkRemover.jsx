@@ -358,6 +358,7 @@ export default function WatermarkRemover() {
             formData.append('prompt', premiumPrompt || "fill with surrounding content, high quality");
             formData.append('n', '1');
             formData.append('size', `${size}x${size}`);
+            formData.append('response_format', 'b64_json');
 
             const response = await fetch('https://api.openai.com/v1/images/edits', {
                 method: 'POST',
@@ -375,14 +376,12 @@ export default function WatermarkRemover() {
 
             if (data.data && data.data.length > 0) {
                 // 3. Process Result
-                // We receive a square image URL. We need to crop it back to original dimensions.
-                const resultUrl = data.data[0].url;
+                // We receive a Base64 JSON. We no longer have CORS issues.
+                const resultB64 = data.data[0].b64_json;
 
-                // Fetch the result image to crop it locally (to avoid CORS issues with simple img tag sometimes, and to restore size)
-                // Actually we can just draw it to canvas
                 const resImg = new Image();
-                resImg.crossOrigin = "anonymous";
-                resImg.src = resultUrl; // Note: OpenAI URLs are temporary
+                resImg.src = `data:image/png;base64,${resultB64}`;
+
                 await new Promise((resolve, reject) => {
                     resImg.onload = resolve;
                     resImg.onerror = reject;

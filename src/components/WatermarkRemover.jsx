@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Upload, Download, Eraser, Sparkles, AlertCircle, Wand2, ZoomIn, ZoomOut, Move, Undo, Redo, RotateCcw } from 'lucide-react';
+import { Upload, Download, Eraser, Sparkles, AlertCircle, Wand2, ZoomIn, ZoomOut, Move, Undo, Redo, RotateCcw, Eye, EyeOff, Brush, Trash2 } from 'lucide-react';
 
 export default function WatermarkRemover() {
     const [image, setImage] = useState(null);
@@ -12,6 +12,8 @@ export default function WatermarkRemover() {
     const [inpaintRadius, setInpaintRadius] = useState(3);
 
     // Editor State
+    const [tool, setTool] = useState('brush'); // 'brush' | 'eraser'
+    const [showMask, setShowMask] = useState(true);
     const [zoom, setZoom] = useState(1);
     const [pan, setPan] = useState({ x: 0, y: 0 });
     const [isPanning, setIsPanning] = useState(false);
@@ -117,6 +119,8 @@ export default function WatermarkRemover() {
                     setPan({ x: 0, y: 0 });
                     setHistory([]);
                     setHistoryStep(-1);
+                    setTool('brush');
+                    setShowMask(true);
                 };
                 img.src = e.target.result;
             };
@@ -134,9 +138,6 @@ export default function WatermarkRemover() {
     useEffect(() => {
         if (!image || !canvasRef.current || !imageRef.current) return;
 
-        // Match canvas size to image Display size (which we force to be intrinsic in the editor)
-        // Actually, for quality, let's keep canvas 1:1 with natural image size
-        // and scale visually via CSS.
         const canvas = canvasRef.current;
         canvas.width = imageDimensions.width;
         canvas.height = imageDimensions.height;
@@ -168,7 +169,7 @@ export default function WatermarkRemover() {
     const handleMouseDown = (e) => {
         // Allow panning with middle mouse or spacebar (handled via mode)
         if (isPanning || e.button === 1) {
-            return; // Handled by standard drag logic if we added it, but here we do custom pan
+            return;
         }
 
         setIsDrawing(true);
@@ -176,13 +177,17 @@ export default function WatermarkRemover() {
         const ctx = canvasRef.current.getContext('2d');
         ctx.beginPath();
         ctx.moveTo(x, y);
-        ctx.lineWidth = brushSize / zoom; // Adjust brush size visual? No, brush size should probably be constant relative to image or screen? 
-        // Typically brush size is in pixels relative to IMAGE content.
-        // So if brush is 20px, it draws 20px on the 4K image.
         ctx.lineWidth = brushSize;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
-        ctx.strokeStyle = 'rgba(255, 0, 0, 0.5)';
+
+        if (tool === 'eraser') {
+            ctx.globalCompositeOperation = 'destination-out';
+        } else {
+            ctx.globalCompositeOperation = 'source-over';
+            ctx.strokeStyle = 'rgba(255, 0, 0, 0.5)';
+        }
+
         ctx.lineTo(x, y); // Draw dot
         ctx.stroke();
     };
@@ -212,6 +217,7 @@ export default function WatermarkRemover() {
             setIsDrawing(false);
             const ctx = canvasRef.current.getContext('2d');
             ctx.closePath();
+            ctx.globalCompositeOperation = 'source-over'; // Reset to default
             saveToHistory();
         }
     };
@@ -367,14 +373,32 @@ export default function WatermarkRemover() {
                             {/* Toolbar */}
                             <div className="flex flex-wrap items-center justify-between mb-4 gap-4 p-2 bg-gray-50 rounded-xl border border-gray-100">
                                 <div className="flex items-center space-x-2">
-                                    <button
-                                        onClick={() => setIsPanning(!isPanning)}
-                                        className={`p-2 rounded-lg transition-colors ${isPanning ? 'bg-primary-100 text-primary-600' : 'hover:bg-gray-200 text-gray-600'}`}
-                                        title={isPanning ? "Drawing Mode" : "Panning Mode"}
-                                    >
-                                        {isPanning ? <Move className="w-5 h-5" /> : <Wand2 className="w-5 h-5" />}
-                                    </button>
+                                    <div className="flex bg-gray-100 rounded-lg p-1">
+                                        <button
+                                            onClick={() => { setIsPanning(false); setTool('brush'); }}
+                                            className={`p-2 rounded-md transition-all ${!isPanning && tool === 'brush' ? 'bg-white shadow text-primary-600' : 'text-gray-500 hover:text-gray-700'}`}
+                                            title="Brush Tool"
+                                        >
+                                            <Brush className="w-5 h-5" />
+                                        </button>
+                                        <button
+                                            onClick={() => { setIsPanning(false); setTool('eraser'); }}
+                                            className={`p-2 rounded-md transition-all ${!isPanning && tool === 'eraser' ? 'bg-white shadow text-primary-600' : 'text-gray-500 hover:text-gray-700'}`}
+                                            title="Eraser Tool"
+                                        >
+                                            <Eraser className="w-5 h-5" />
+                                        </button>
+                                        <button
+                                            onClick={() => setIsPanning(true)}
+                                            className={`p-2 rounded-md transition-all ${isPanning ? 'bg-white shadow text-primary-600' : 'text-gray-500 hover:text-gray-700'}`}
+                                            title="Pan Tool"
+                                        >
+                                            <Move className="w-5 h-5" />
+                                        </button>
+                                    </div>
+
                                     <div className="h-6 w-px bg-gray-300 mx-2"></div>
+
                                     <button onClick={handleUndo} disabled={historyStep < 0} className="p-2 text-gray-600 hover:bg-gray-200 rounded-lg disabled:opacity-30">
                                         <Undo className="w-5 h-5" />
                                     </button>
@@ -384,7 +408,7 @@ export default function WatermarkRemover() {
                                 </div>
 
                                 <div className="flex items-center space-x-4 flex-1 justify-center">
-                                    <div className="flex items-center space-x-2">
+                                    <div className="hidden md:flex items-center space-x-2">
                                         <span className="text-xs font-semibold text-gray-500 uppercase">Brush</span>
                                         <input
                                             type="range"
@@ -395,7 +419,7 @@ export default function WatermarkRemover() {
                                             className="w-24 h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer accent-primary-600"
                                         />
                                     </div>
-                                    <div className="flex items-center space-x-2">
+                                    <div className="hidden md:flex items-center space-x-2">
                                         <span className="text-xs font-semibold text-gray-500 uppercase">Radius</span>
                                         <input
                                             type="range"
@@ -409,6 +433,14 @@ export default function WatermarkRemover() {
                                 </div>
 
                                 <div className="flex items-center space-x-2">
+                                    <button
+                                        onClick={() => setShowMask(!showMask)}
+                                        className={`p-2 rounded-lg transition-colors ${!showMask ? 'bg-gray-200 text-gray-600' : 'text-primary-600 hover:bg-primary-50'}`}
+                                        title={showMask ? "Hide Mask" : "Show Mask"}
+                                    >
+                                        {showMask ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
+                                    </button>
+                                    <div className="h-6 w-px bg-gray-300 mx-2"></div>
                                     <button onClick={handleZoomOut} className="p-2 text-gray-600 hover:bg-gray-200 rounded-lg">
                                         <ZoomOut className="w-5 h-5" />
                                     </button>
@@ -441,7 +473,7 @@ export default function WatermarkRemover() {
                                         transformOrigin: '0 0',
                                         width: imageDimensions.width,
                                         height: imageDimensions.height,
-                                        cursor: isPanning ? 'grab' : 'crosshair',
+                                        cursor: isPanning ? 'grab' : tool === 'eraser' ? 'cell' : 'crosshair',
                                         willChange: 'transform'
                                     }}
                                 >
@@ -454,13 +486,13 @@ export default function WatermarkRemover() {
                                     />
                                     <canvas
                                         ref={canvasRef}
-                                        className="absolute top-0 left-0 pointer-events-none"
+                                        className={`absolute top-0 left-0 pointer-events-none transition-opacity duration-200 ${showMask ? 'opacity-100' : 'opacity-0'}`}
                                     />
 
                                     {/* Brush Cursor (Only visible when drawing/hovering not panning) */}
                                     {!isPanning && !isDrawing && (
                                         <div
-                                            className="fixed border-2 border-red-500 rounded-full opacity-50 pointer-events-none z-500"
+                                            className={`fixed border-2 rounded-full opacity-50 pointer-events-none z-500 ${tool === 'eraser' ? 'border-white bg-white/30' : 'border-red-500'}`}
                                             style={{
                                                 width: brushSize, // brushSize is in image pixels
                                                 height: brushSize,
@@ -469,7 +501,7 @@ export default function WatermarkRemover() {
                                                 left: cursorPos.x - brushSize / 2,
                                                 top: cursorPos.y - brushSize / 2,
                                                 position: 'absolute',
-                                                border: `${2 / zoom}px solid rgba(255,0,0,0.8)` // scale border inverse to zoom so it stays visible
+                                                borderWidth: `${2 / zoom}px` // scale border inverse to zoom so it stays visible
                                             }}
                                         />
                                     )}
@@ -481,8 +513,8 @@ export default function WatermarkRemover() {
                                     onClick={handleClearMask}
                                     className="text-gray-500 hover:text-red-500 font-medium px-4 py-2 flex items-center space-x-2"
                                 >
-                                    <Eraser className="w-4 h-4" />
-                                    <span>Clear Mask</span>
+                                    <Trash2 className="w-4 h-4" />
+                                    <span>Reset Mask</span>
                                 </button>
 
                                 <div className="flex space-x-4">

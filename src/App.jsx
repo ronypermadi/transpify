@@ -9,6 +9,7 @@ import ImageCropper from './components/ImageCropper';
 import WatermarkRemover from './components/WatermarkRemover';
 
 import ImageToBase64 from './components/ImageToBase64';
+import ImageUpscaler from './components/ImageUpscaler';
 
 function App() {
     return (
@@ -23,6 +24,7 @@ function App() {
                     <Route path="/cropper" element={<ImageCropper />} />
                     <Route path="/watermark-remover" element={<WatermarkRemover />} />
                     <Route path="/image-to-base64" element={<ImageToBase64 />} />
+                    <Route path="/upscaler" element={<ImageUpscaler />} />
                 </Routes>
             </div>
         </Router>

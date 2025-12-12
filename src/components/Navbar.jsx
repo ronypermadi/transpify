@@ -35,6 +35,9 @@ export default function Navbar() {
                         <Link to="/image-to-base64" className="text-gray-700 hover:text-primary-600 font-medium transition-colors duration-200">
                             Image to Base64
                         </Link>
+                        <Link to="/upscaler" className="text-gray-700 hover:text-primary-600 font-medium transition-colors duration-200">
+                            Upscaler
+                        </Link>
                     </div>
                 </div>
             </div>

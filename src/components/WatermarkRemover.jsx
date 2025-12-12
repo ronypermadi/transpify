@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Upload, Download, Eraser, Sparkles, AlertCircle, Wand2, ZoomIn, ZoomOut, Move, Undo, Redo, RotateCcw, Eye, EyeOff, Brush, Trash2 } from 'lucide-react';
+import { Upload, Download, Eraser, Sparkles, AlertCircle, Wand2, ZoomIn, ZoomOut, Move, Undo, Redo, RotateCcw, Eye, EyeOff, Brush, Trash2, Square, HelpCircle } from 'lucide-react';
 
 export default function WatermarkRemover() {
     const [image, setImage] = useState(null);
@@ -12,7 +12,7 @@ export default function WatermarkRemover() {
     const [inpaintRadius, setInpaintRadius] = useState(3);
 
     // Editor State
-    const [tool, setTool] = useState('brush'); // 'brush' | 'eraser'
+    const [tool, setTool] = useState('brush'); // 'brush' | 'eraser' | 'rectangle'
     const [showMask, setShowMask] = useState(true);
     const [zoom, setZoom] = useState(1);
     const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -21,6 +21,13 @@ export default function WatermarkRemover() {
     const [historyStep, setHistoryStep] = useState(-1);
     const [isDrawing, setIsDrawing] = useState(false);
     const [cursorPos, setCursorPos] = useState({ x: 0, y: 0 }); // Relative to image
+
+    // Rectangle Selection State
+    const [dragStart, setDragStart] = useState(null);
+    const [rectSelection, setRectSelection] = useState(null);
+
+    // Compare State
+    const [isComparing, setIsComparing] = useState(false);
 
     // Image Info
     const [imageDimensions, setImageDimensions] = useState({ width: 0, height: 0 });
@@ -75,7 +82,7 @@ export default function WatermarkRemover() {
         setHistoryStep(newHistory.length - 1);
     }, [history, historyStep]);
 
-    const handleUndo = () => {
+    const handleUndo = useCallback(() => {
         if (historyStep > 0) {
             const newStep = historyStep - 1;
             setHistoryStep(newStep);
@@ -89,9 +96,9 @@ export default function WatermarkRemover() {
             const ctx = canvasRef.current.getContext('2d');
             ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
         }
-    };
+    }, [historyStep, history]);
 
-    const handleRedo = () => {
+    const handleRedo = useCallback(() => {
         if (historyStep < history.length - 1) {
             const newStep = historyStep + 1;
             setHistoryStep(newStep);
@@ -99,7 +106,42 @@ export default function WatermarkRemover() {
             const ctx = canvasRef.current.getContext('2d');
             ctx.putImageData(imageData, 0, 0);
         }
-    };
+    }, [historyStep, history]);
+
+    // Keyboard Shortcuts
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (!image) return;
+            // Ignore if typing in input
+            if (e.target.tagName === 'INPUT') return;
+
+            switch (e.key.toLowerCase()) {
+                case 'b': setTool('brush'); setIsPanning(false); break;
+                case 'e': setTool('eraser'); setIsPanning(false); break;
+                case 'r': setTool('rectangle'); setIsPanning(false); break;
+                case 'h': setIsPanning(prev => !prev); break; // Hand tool
+                case '[': setBrushSize(prev => Math.max(5, prev - 5)); break;
+                case ']': setBrushSize(prev => Math.min(100, prev + 5)); break;
+                case 'z':
+                    if (e.ctrlKey || e.metaKey) {
+                        e.preventDefault();
+                        if (e.shiftKey) handleRedo();
+                        else handleUndo();
+                    }
+                    break;
+                case 'y':
+                    if (e.ctrlKey || e.metaKey) {
+                        e.preventDefault();
+                        handleRedo();
+                    }
+                    break;
+                default: break;
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [image, handleUndo, handleRedo]);
 
     // Handle Image Upload
     const onDrop = useCallback((acceptedFiles) => {
@@ -141,9 +183,6 @@ export default function WatermarkRemover() {
         const canvas = canvasRef.current;
         canvas.width = imageDimensions.width;
         canvas.height = imageDimensions.height;
-
-        // Initialize history with empty state
-        // saveToHistory(); // Don't save empty automatically to allow "Undo" to clear
     }, [image, imageDimensions]);
 
     // Handle Mouse/Touch Interaction
@@ -153,27 +192,23 @@ export default function WatermarkRemover() {
         const clientX = e.clientX || e.touches?.[0]?.clientX;
         const clientY = e.clientY || e.touches?.[0]?.clientY;
 
-        // Calculate relative to the container center or top-left?
-        // Our 'content' is transformed by 'pan' and 'zoom' inside 'container'
-        // CSS Transform: translate(pan.x, pan.y) scale(zoom)
-        // Logic:
-        // 1. Mouse relative to container top-left: (clientX - rect.left, clientY - rect.top)
-        // 2. Subtract translation: - pan.x, - pan.y
-        // 3. Divide by scale: / zoom
-
         const x = (clientX - rect.left - pan.x) / zoom;
         const y = (clientY - rect.top - pan.y) / zoom;
         return { x, y };
     };
 
     const handleMouseDown = (e) => {
-        // Allow panning with middle mouse or spacebar (handled via mode)
-        if (isPanning || e.button === 1) {
+        if (isPanning || e.button === 1) return;
+
+        const { x, y } = getCoords(e);
+        setIsDrawing(true);
+
+        if (tool === 'rectangle') {
+            setDragStart({ x, y });
+            setRectSelection({ x, y, w: 0, h: 0 });
             return;
         }
 
-        setIsDrawing(true);
-        const { x, y } = getCoords(e);
         const ctx = canvasRef.current.getContext('2d');
         ctx.beginPath();
         ctx.moveTo(x, y);
@@ -188,7 +223,7 @@ export default function WatermarkRemover() {
             ctx.strokeStyle = 'rgba(255, 0, 0, 0.5)';
         }
 
-        ctx.lineTo(x, y); // Draw dot
+        ctx.lineTo(x, y);
         ctx.stroke();
     };
 
@@ -197,7 +232,6 @@ export default function WatermarkRemover() {
         setCursorPos({ x, y });
 
         if (isPanning && e.buttons === 1) {
-            // Pan logic
             setPan(prev => ({
                 x: prev.x + e.movementX,
                 y: prev.y + e.movementY
@@ -206,18 +240,38 @@ export default function WatermarkRemover() {
         }
 
         if (isDrawing) {
-            const ctx = canvasRef.current.getContext('2d');
-            ctx.lineTo(x, y);
-            ctx.stroke();
+            if (tool === 'rectangle' && dragStart) {
+                setRectSelection({
+                    x: dragStart.x,
+                    y: dragStart.y,
+                    w: x - dragStart.x,
+                    h: y - dragStart.y
+                });
+            } else {
+                const ctx = canvasRef.current.getContext('2d');
+                ctx.lineTo(x, y);
+                ctx.stroke();
+            }
         }
     };
 
     const handleMouseUp = () => {
         if (isDrawing) {
             setIsDrawing(false);
-            const ctx = canvasRef.current.getContext('2d');
-            ctx.closePath();
-            ctx.globalCompositeOperation = 'source-over'; // Reset to default
+
+            if (tool === 'rectangle' && dragStart && rectSelection) {
+                const ctx = canvasRef.current.getContext('2d');
+                ctx.fillStyle = 'rgba(255, 0, 0, 0.5)';
+                ctx.globalCompositeOperation = 'source-over';
+                ctx.fillRect(rectSelection.x, rectSelection.y, rectSelection.w, rectSelection.h);
+                setDragStart(null);
+                setRectSelection(null);
+            } else {
+                const ctx = canvasRef.current.getContext('2d');
+                ctx.closePath();
+                ctx.globalCompositeOperation = 'source-over';
+            }
+
             saveToHistory();
         }
     };
@@ -235,9 +289,6 @@ export default function WatermarkRemover() {
             e.preventDefault();
             const scale = e.deltaY > 0 ? 0.9 : 1.1;
             setZoom(prev => Math.min(Math.max(prev * scale, 0.1), 5));
-        } else { // Pan (optional, or just native scroll if we used scrollbars)
-            // But we use custom pan
-            // setPan(prev => ({ x: prev.x - e.deltaX, y: prev.y - e.deltaY }));
         }
     };
 
@@ -252,32 +303,25 @@ export default function WatermarkRemover() {
         const startTime = performance.now();
 
         try {
-            // Source is already loaded in imageRef, but let's read distinct data
             const srcCanvas = document.createElement('canvas');
             srcCanvas.width = imageDimensions.width;
             srcCanvas.height = imageDimensions.height;
             const srcCtx = srcCanvas.getContext('2d');
 
-            // Draw original image
             const img = new Image();
             img.src = image;
             await new Promise(r => img.onload = r);
             srcCtx.drawImage(img, 0, 0);
 
             const srcImageData = srcCtx.getImageData(0, 0, imageDimensions.width, imageDimensions.height);
-
-            // Get Mask Data directly from our drawing canvas (which is already 1:1)
             const maskCtx = canvasRef.current.getContext('2d');
             const maskImageDataRaw = maskCtx.getImageData(0, 0, imageDimensions.width, imageDimensions.height);
 
-            // Convert to OpenCV format
             const cv = window.cv;
             const src = cv.matFromImageData(srcImageData);
             const mask = new cv.Mat(imageDimensions.height, imageDimensions.width, cv.CV_8UC1);
 
-            // Process mask data: All alpha > 0 becomes 255 (white)
             for (let i = 0; i < maskImageDataRaw.data.length; i += 4) {
-                // Alpha channel check
                 if (maskImageDataRaw.data[i + 3] > 0) {
                     mask.data[i / 4] = 255;
                 } else {
@@ -289,10 +333,8 @@ export default function WatermarkRemover() {
             const srcRGB = new cv.Mat();
             cv.cvtColor(src, srcRGB, cv.COLOR_RGBA2RGB);
 
-            // Inpaint
             cv.inpaint(srcRGB, mask, dst, inpaintRadius, cv.INPAINT_TELEA);
 
-            // Output
             const outputCanvas = document.createElement('canvas');
             outputCanvas.width = imageDimensions.width;
             outputCanvas.height = imageDimensions.height;
@@ -301,7 +343,6 @@ export default function WatermarkRemover() {
             setResult(outputCanvas.toDataURL('image/png'));
             setProcessingTime(Math.round(performance.now() - startTime));
 
-            // Cleanup
             src.delete();
             mask.delete();
             srcRGB.delete();
@@ -371,27 +412,34 @@ export default function WatermarkRemover() {
                     <div className="flex-1 space-y-4">
                         <div className="bg-white p-4 rounded-2xl shadow-xl glass border border-white/20">
                             {/* Toolbar */}
-                            <div className="flex flex-wrap items-center justify-between mb-4 gap-4 p-2 bg-gray-50 rounded-xl border border-gray-100">
+                            <div className="flex flex-wrap items-center justify-between mb-4 gap-4 p-2 bg-gray-50 rounded-xl border border-gray-100 relative z-20">
                                 <div className="flex items-center space-x-2">
                                     <div className="flex bg-gray-100 rounded-lg p-1">
                                         <button
                                             onClick={() => { setIsPanning(false); setTool('brush'); }}
                                             className={`p-2 rounded-md transition-all ${!isPanning && tool === 'brush' ? 'bg-white shadow text-primary-600' : 'text-gray-500 hover:text-gray-700'}`}
-                                            title="Brush Tool"
+                                            title="Brush (B)"
                                         >
                                             <Brush className="w-5 h-5" />
                                         </button>
                                         <button
                                             onClick={() => { setIsPanning(false); setTool('eraser'); }}
                                             className={`p-2 rounded-md transition-all ${!isPanning && tool === 'eraser' ? 'bg-white shadow text-primary-600' : 'text-gray-500 hover:text-gray-700'}`}
-                                            title="Eraser Tool"
+                                            title="Eraser (E)"
                                         >
                                             <Eraser className="w-5 h-5" />
                                         </button>
                                         <button
+                                            onClick={() => { setIsPanning(false); setTool('rectangle'); }}
+                                            className={`p-2 rounded-md transition-all ${!isPanning && tool === 'rectangle' ? 'bg-white shadow text-primary-600' : 'text-gray-500 hover:text-gray-700'}`}
+                                            title="Rectangle Select (R)"
+                                        >
+                                            <Square className="w-5 h-5" />
+                                        </button>
+                                        <button
                                             onClick={() => setIsPanning(true)}
                                             className={`p-2 rounded-md transition-all ${isPanning ? 'bg-white shadow text-primary-600' : 'text-gray-500 hover:text-gray-700'}`}
-                                            title="Pan Tool"
+                                            title="Pan (H)"
                                         >
                                             <Move className="w-5 h-5" />
                                         </button>
@@ -399,10 +447,10 @@ export default function WatermarkRemover() {
 
                                     <div className="h-6 w-px bg-gray-300 mx-2"></div>
 
-                                    <button onClick={handleUndo} disabled={historyStep < 0} className="p-2 text-gray-600 hover:bg-gray-200 rounded-lg disabled:opacity-30">
+                                    <button onClick={handleUndo} disabled={historyStep < 0} className="p-2 text-gray-600 hover:bg-gray-200 rounded-lg disabled:opacity-30" title="Undo (Ctrl+Z)">
                                         <Undo className="w-5 h-5" />
                                     </button>
-                                    <button onClick={handleRedo} disabled={historyStep >= history.length - 1} className="p-2 text-gray-600 hover:bg-gray-200 rounded-lg disabled:opacity-30">
+                                    <button onClick={handleRedo} disabled={historyStep >= history.length - 1} className="p-2 text-gray-600 hover:bg-gray-200 rounded-lg disabled:opacity-30" title="Redo (Ctrl+Y)">
                                         <Redo className="w-5 h-5" />
                                     </button>
                                 </div>
@@ -451,6 +499,24 @@ export default function WatermarkRemover() {
                                     <button onClick={handleResetView} className="p-2 text-gray-600 hover:bg-gray-200 rounded-lg" title="Reset View">
                                         <RotateCcw className="w-5 h-5" />
                                     </button>
+
+                                    {/* Help Icon for Shortcuts */}
+                                    <div className="relative group ml-2">
+                                        <button className="p-2 text-gray-400 hover:text-gray-600">
+                                            <HelpCircle className="w-5 h-5" />
+                                        </button>
+                                        <div className="absolute right-0 top-full mt-2 w-48 bg-gray-800 text-white text-xs rounded-lg p-3 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none">
+                                            <div className="font-bold mb-1 border-b border-gray-600 pb-1">Shortcuts</div>
+                                            <div className="grid grid-cols-2 gap-1">
+                                                <span>Brush</span> <span className="text-right text-gray-400">B</span>
+                                                <span>Eraser</span> <span className="text-right text-gray-400">E</span>
+                                                <span>Rect</span> <span className="text-right text-gray-400">R</span>
+                                                <span>Pan</span> <span className="text-right text-gray-400">H</span>
+                                                <span>Size</span> <span className="text-right text-gray-400">[ ]</span>
+                                                <span>Undo</span> <span className="text-right text-gray-400">Ctrl+Z</span>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
 
@@ -473,7 +539,7 @@ export default function WatermarkRemover() {
                                         transformOrigin: '0 0',
                                         width: imageDimensions.width,
                                         height: imageDimensions.height,
-                                        cursor: isPanning ? 'grab' : tool === 'eraser' ? 'cell' : 'crosshair',
+                                        cursor: isPanning ? 'grab' : tool === 'eraser' ? 'cell' : tool === 'rectangle' ? 'crosshair' : 'crosshair',
                                         willChange: 'transform'
                                     }}
                                 >
@@ -489,19 +555,31 @@ export default function WatermarkRemover() {
                                         className={`absolute top-0 left-0 pointer-events-none transition-opacity duration-200 ${showMask ? 'opacity-100' : 'opacity-0'}`}
                                     />
 
-                                    {/* Brush Cursor (Only visible when drawing/hovering not panning) */}
-                                    {!isPanning && !isDrawing && (
+                                    {/* Brush Cursor */}
+                                    {!isPanning && !isDrawing && tool !== 'rectangle' && (
                                         <div
                                             className={`fixed border-2 rounded-full opacity-50 pointer-events-none z-500 ${tool === 'eraser' ? 'border-white bg-white/30' : 'border-red-500'}`}
                                             style={{
-                                                width: brushSize, // brushSize is in image pixels
+                                                width: brushSize,
                                                 height: brushSize,
-                                                // We need to project the cursor position back to screen space for this if we use fixed/absolute on top
-                                                // BUT, simplifying: let's put it inside the transform so context matches
                                                 left: cursorPos.x - brushSize / 2,
                                                 top: cursorPos.y - brushSize / 2,
                                                 position: 'absolute',
-                                                borderWidth: `${2 / zoom}px` // scale border inverse to zoom so it stays visible
+                                                borderWidth: `${2 / zoom}px`
+                                            }}
+                                        />
+                                    )}
+
+                                    {/* Rectangle Selection Preview */}
+                                    {isDrawing && tool === 'rectangle' && rectSelection && (
+                                        <div
+                                            className="absolute border-2 border-red-500 bg-red-500/20 pointer-events-none"
+                                            style={{
+                                                left: Math.min(rectSelection.x, rectSelection.x + rectSelection.w),
+                                                top: Math.min(rectSelection.y, rectSelection.y + rectSelection.h),
+                                                width: Math.abs(rectSelection.w),
+                                                height: Math.abs(rectSelection.h),
+                                                borderWidth: `${2 / zoom}px`
                                             }}
                                         />
                                     )}
@@ -559,7 +637,7 @@ export default function WatermarkRemover() {
                         </div>
                     </div>
 
-                    {/* Result Column */}
+                    {/* Result Section */}
                     {result && (
                         <div className="lg:w-1/3 animate-slide-up">
                             <div className="bg-white p-4 rounded-2xl shadow-xl glass border border-white/20 h-full sticky top-24">
@@ -568,8 +646,26 @@ export default function WatermarkRemover() {
                                     <span className="text-xs text-gray-400">Time: {processingTime}ms</span>
                                 </div>
 
-                                <div className="relative rounded-xl overflow-hidden bg-gray-100 border border-gray-200 mb-6 bg-checkered">
-                                    <img src={result} alt="Result" className="w-full h-auto" />
+                                <div className="relative rounded-xl overflow-hidden bg-gray-100 border border-gray-200 mb-6 bg-checkered group">
+                                    {/* Compare View Logic */}
+                                    <img
+                                        src={isComparing ? image : result}
+                                        alt="Result"
+                                        className="w-full h-auto"
+                                    />
+                                    {/* Compare Badge */}
+                                    <div className="absolute top-2 right-2">
+                                        <button
+                                            onMouseDown={() => setIsComparing(true)}
+                                            onMouseUp={() => setIsComparing(false)}
+                                            onMouseLeave={() => setIsComparing(false)}
+                                            onTouchStart={() => setIsComparing(true)}
+                                            onTouchEnd={() => setIsComparing(false)}
+                                            className="bg-black/50 hover:bg-black/70 text-white text-xs px-2 py-1 rounded backdrop-blur-sm transition-colors cursor-pointer select-none ring-1 ring-white/20 shadow"
+                                        >
+                                            {isComparing ? "Original" : "Hold to Compare"}
+                                        </button>
+                                    </div>
                                 </div>
                                 <div className="flex flex-col space-y-3">
                                     <a

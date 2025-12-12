@@ -562,7 +562,7 @@ export default function WatermarkRemover() {
 
                     {/* Canvas Container */}
                     <div
-                        className="relative bg-gray-900 overflow-hidden h-[600px] cursor-crosshair select-none flex items-center justify-center shadow-inner"
+                        className="relative bg-gray-900 overflow-hidden h-[600px] cursor-crosshair select-none touch-none shadow-inner"
                         ref={containerRef}
                         onMouseDown={handleMouseDown}
                         onMouseMove={handleMouseMove}

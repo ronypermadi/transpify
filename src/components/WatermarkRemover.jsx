@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { Upload, Download, Eraser, Sparkles, AlertCircle, Wand2, ZoomIn, ZoomOut, Move, Undo, Redo, RotateCcw, Eye, EyeOff, Brush, Trash2, Square, HelpCircle } from 'lucide-react';
+import { Upload, Download, Eraser, Sparkles, AlertCircle, Wand2, ZoomIn, ZoomOut, Move, Undo, Redo, RotateCcw, Eye, EyeOff, Brush, Trash2, Square, HelpCircle, Image as ImageIcon, Sliders } from 'lucide-react';
 
 export default function WatermarkRemover() {
     const [image, setImage] = useState(null);
@@ -364,322 +364,397 @@ export default function WatermarkRemover() {
     };
 
     return (
-        <div className="container mx-auto px-4 py-8 max-w-6xl">
-            <div className="text-center mb-12">
-                <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-primary-600 to-accent-600 bg-clip-text text-transparent">
-                    Magic Watermark Remover
+        <div className="container mx-auto px-4 py-8 max-w-7xl animate-fade-in">
+            {/* Header / Title */}
+            <div className="text-center mb-10">
+                <div className="inline-flex items-center justify-center p-3 bg-primary-50 rounded-2xl mb-4 text-primary-600 ring-1 ring-primary-100 shadow-sm">
+                    <Sparkles className="w-8 h-8" />
+                </div>
+                <h1 className="text-4xl md:text-5xl font-bold mb-3 tracking-tight text-gray-900">
+                    Magic <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-600 to-accent-600">Watermark Remover</span>
                 </h1>
-                <p className="text-gray-600 text-lg flex items-center justify-center gap-2">
-                    Client-Side Technology (OpenCV) • No API Key Required • 100% Free
+                <p className="text-gray-500 text-lg max-w-2xl mx-auto">
+                    Remove unwanted objects, text, or watermarks instantly using on-device AI.
+                    <span className="hidden sm:inline"> Privacy-focused, free, and no installation required.</span>
                 </p>
                 {/* OpenCV Status */}
                 {isOpenCVReady ? (
-                    <div className="mt-4 inline-flex items-center text-green-600 bg-green-50 px-4 py-2 rounded-full text-sm">
-                        <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-                        System Ready
+                    <div className="mt-4 inline-flex items-center text-green-700 bg-green-50 px-3 py-1 rounded-full text-xs font-medium ring-1 ring-green-100">
+                        <div className="w-1.5 h-1.5 bg-green-500 rounded-full mr-2"></div>
+                        AI Core Ready
                     </div>
                 ) : (
-                    <div className="mt-4 inline-flex items-center text-amber-600 bg-amber-50 px-4 py-2 rounded-full text-sm">
-                        <div className="w-2 h-2 bg-amber-500 rounded-full animate-pulse mr-2"></div>
-                        Loading AI Library...
+                    <div className="mt-4 inline-flex items-center text-amber-700 bg-amber-50 px-3 py-1 rounded-full text-xs font-medium ring-1 ring-amber-100">
+                        <div className="w-1.5 h-1.5 bg-amber-500 rounded-full animate-pulse mr-2"></div>
+                        Loading AI Core...
                     </div>
                 )}
             </div>
 
             {!image ? (
+                // Upload Area
                 <div
                     {...getRootProps()}
-                    className={`border-3 border-dashed rounded-3xl p-12 text-center cursor-pointer transition-all duration-300
+                    className={`max-w-2xl mx-auto border-3 border-dashed rounded-3xl p-16 text-center cursor-pointer transition-all duration-300 group
                         ${isDragActive
-                            ? 'border-primary-500 bg-primary-50 scale-102 shadow-lg'
+                            ? 'border-primary-500 bg-primary-50/50 scale-102 shadow-xl ring-4 ring-primary-100'
                             : 'border-gray-200 hover:border-primary-400 hover:bg-gray-50'
                         }`}
                 >
                     <input {...getInputProps()} />
-                    <div className="bg-gradient-to-br from-primary-100 to-accent-100 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-6">
-                        <Upload className={`w-12 h-12 text-primary-600 transition-transform duration-300 ${isDragActive ? 'scale-110' : ''}`} />
+                    <div className="relative w-24 h-24 mx-auto mb-6">
+                        <div className="absolute inset-0 bg-primary-100 rounded-full animate-ping opacity-20 group-hover:opacity-40 duration-1000"></div>
+                        <div className="relative bg-white w-24 h-24 rounded-full flex items-center justify-center shadow-md ring-1 ring-gray-100 group-hover:scale-105 transition-transform">
+                            <Upload className={`w-10 h-10 text-primary-600 transition-colors ${isDragActive ? 'text-primary-700' : ''}`} />
+                        </div>
                     </div>
-                    <h3 className="text-2xl font-semibold text-gray-800 mb-2">
+                    <h3 className="text-2xl font-bold text-gray-800 mb-2">
                         Drop your image here
                     </h3>
-                    <p className="text-gray-500">
-                        or click to upload (up to 10MB)
+                    <p className="text-gray-500 mb-8">
+                        Supports JPG, PNG, WEBP up to 10MB
                     </p>
+                    <button className="bg-gray-900 text-white px-6 py-2.5 rounded-xl font-medium shadow-lg shadow-gray-200 hover:shadow-xl hover:-translate-y-0.5 transition-all">
+                        Browse Files
+                    </button>
                 </div>
             ) : (
-                <div className="flex flex-col lg:flex-row gap-8">
-                    {/* Editor Column */}
-                    <div className="flex-1 space-y-4">
-                        <div className="bg-white p-4 rounded-2xl shadow-xl glass border border-white/20">
-                            {/* Toolbar */}
-                            <div className="flex flex-wrap items-center justify-between mb-4 gap-4 p-2 bg-gray-50 rounded-xl border border-gray-100 relative z-20">
-                                <div className="flex items-center space-x-2">
-                                    <div className="flex bg-gray-100 rounded-lg p-1">
-                                        <button
-                                            onClick={() => { setIsPanning(false); setTool('brush'); }}
-                                            className={`p-2 rounded-md transition-all ${!isPanning && tool === 'brush' ? 'bg-white shadow text-primary-600' : 'text-gray-500 hover:text-gray-700'}`}
-                                            title="Brush (B)"
-                                        >
-                                            <Brush className="w-5 h-5" />
-                                        </button>
-                                        <button
-                                            onClick={() => { setIsPanning(false); setTool('eraser'); }}
-                                            className={`p-2 rounded-md transition-all ${!isPanning && tool === 'eraser' ? 'bg-white shadow text-primary-600' : 'text-gray-500 hover:text-gray-700'}`}
-                                            title="Eraser (E)"
-                                        >
-                                            <Eraser className="w-5 h-5" />
-                                        </button>
-                                        <button
-                                            onClick={() => { setIsPanning(false); setTool('rectangle'); }}
-                                            className={`p-2 rounded-md transition-all ${!isPanning && tool === 'rectangle' ? 'bg-white shadow text-primary-600' : 'text-gray-500 hover:text-gray-700'}`}
-                                            title="Rectangle Select (R)"
-                                        >
-                                            <Square className="w-5 h-5" />
-                                        </button>
-                                        <button
-                                            onClick={() => setIsPanning(true)}
-                                            className={`p-2 rounded-md transition-all ${isPanning ? 'bg-white shadow text-primary-600' : 'text-gray-500 hover:text-gray-700'}`}
-                                            title="Pan (H)"
-                                        >
-                                            <Move className="w-5 h-5" />
-                                        </button>
-                                    </div>
+                // Main Workspace
+                <div className="bg-white rounded-2xl shadow-2xl overflow-hidden ring-1 ring-gray-200">
 
-                                    <div className="h-6 w-px bg-gray-300 mx-2"></div>
-
-                                    <button onClick={handleUndo} disabled={historyStep < 0} className="p-2 text-gray-600 hover:bg-gray-200 rounded-lg disabled:opacity-30" title="Undo (Ctrl+Z)">
-                                        <Undo className="w-5 h-5" />
-                                    </button>
-                                    <button onClick={handleRedo} disabled={historyStep >= history.length - 1} className="p-2 text-gray-600 hover:bg-gray-200 rounded-lg disabled:opacity-30" title="Redo (Ctrl+Y)">
-                                        <Redo className="w-5 h-5" />
-                                    </button>
-                                </div>
-
-                                <div className="flex items-center space-x-4 flex-1 justify-center">
-                                    <div className="hidden md:flex items-center space-x-2">
-                                        <span className="text-xs font-semibold text-gray-500 uppercase">Brush</span>
-                                        <input
-                                            type="range"
-                                            min="5"
-                                            max="100"
-                                            value={brushSize}
-                                            onChange={(e) => setBrushSize(parseInt(e.target.value))}
-                                            className="w-24 h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer accent-primary-600"
-                                        />
-                                    </div>
-                                    <div className="hidden md:flex items-center space-x-2">
-                                        <span className="text-xs font-semibold text-gray-500 uppercase">Radius</span>
-                                        <input
-                                            type="range"
-                                            min="1"
-                                            max="20"
-                                            value={inpaintRadius}
-                                            onChange={(e) => setInpaintRadius(parseInt(e.target.value))}
-                                            className="w-24 h-2 bg-gray-300 rounded-lg appearance-none cursor-pointer accent-primary-600"
-                                        />
-                                    </div>
-                                </div>
-
-                                <div className="flex items-center space-x-2">
-                                    <button
-                                        onClick={() => setShowMask(!showMask)}
-                                        className={`p-2 rounded-lg transition-colors ${!showMask ? 'bg-gray-200 text-gray-600' : 'text-primary-600 hover:bg-primary-50'}`}
-                                        title={showMask ? "Hide Mask" : "Show Mask"}
-                                    >
-                                        {showMask ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
-                                    </button>
-                                    <div className="h-6 w-px bg-gray-300 mx-2"></div>
-                                    <button onClick={handleZoomOut} className="p-2 text-gray-600 hover:bg-gray-200 rounded-lg">
-                                        <ZoomOut className="w-5 h-5" />
-                                    </button>
-                                    <span className="w-12 text-center font-mono text-sm">{Math.round(zoom * 100)}%</span>
-                                    <button onClick={handleZoomIn} className="p-2 text-gray-600 hover:bg-gray-200 rounded-lg">
-                                        <ZoomIn className="w-5 h-5" />
-                                    </button>
-                                    <button onClick={handleResetView} className="p-2 text-gray-600 hover:bg-gray-200 rounded-lg" title="Reset View">
-                                        <RotateCcw className="w-5 h-5" />
-                                    </button>
-
-                                    {/* Help Icon for Shortcuts */}
-                                    <div className="relative group ml-2">
-                                        <button className="p-2 text-gray-400 hover:text-gray-600">
-                                            <HelpCircle className="w-5 h-5" />
-                                        </button>
-                                        <div className="absolute right-0 top-full mt-2 w-48 bg-gray-800 text-white text-xs rounded-lg p-3 shadow-xl opacity-0 group-hover:opacity-100 transition-opacity z-50 pointer-events-none">
-                                            <div className="font-bold mb-1 border-b border-gray-600 pb-1">Shortcuts</div>
-                                            <div className="grid grid-cols-2 gap-1">
-                                                <span>Brush</span> <span className="text-right text-gray-400">B</span>
-                                                <span>Eraser</span> <span className="text-right text-gray-400">E</span>
-                                                <span>Rect</span> <span className="text-right text-gray-400">R</span>
-                                                <span>Pan</span> <span className="text-right text-gray-400">H</span>
-                                                <span>Size</span> <span className="text-right text-gray-400">[ ]</span>
-                                                <span>Undo</span> <span className="text-right text-gray-400">Ctrl+Z</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Canvas Area */}
-                            <div
-                                className="relative overflow-hidden rounded-xl bg-gray-800 border border-gray-200 h-[500px]"
-                                ref={containerRef}
-                                onMouseDown={handleMouseDown}
-                                onMouseMove={handleMouseMove}
-                                onMouseUp={handleMouseUp}
-                                onMouseLeave={() => {
-                                    handleMouseUp();
-                                }}
-                                onWheel={handleWheel}
+                    {/* Toolbar Header */}
+                    <div className="border-b border-gray-200 bg-white p-3 flex flex-col md:flex-row items-center justify-between gap-4 sticky top-0 z-30">
+                        {/* Left: Tools */}
+                        <div className="flex bg-gray-100/80 p-1.5 rounded-xl gap-1 shadow-inner">
+                            <button
+                                onClick={() => { setIsPanning(false); setTool('brush'); }}
+                                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all
+                                    ${!isPanning && tool === 'brush'
+                                        ? 'bg-white text-primary-600 shadow-sm ring-1 ring-black/5'
+                                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'}`}
+                                title="Brush Tool (B)"
                             >
-                                <div
-                                    ref={contentRef}
-                                    style={{
-                                        transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
-                                        transformOrigin: '0 0',
-                                        width: imageDimensions.width,
-                                        height: imageDimensions.height,
-                                        cursor: isPanning ? 'grab' : tool === 'eraser' ? 'cell' : tool === 'rectangle' ? 'crosshair' : 'crosshair',
-                                        willChange: 'transform'
-                                    }}
-                                >
-                                    <img
-                                        ref={imageRef}
-                                        src={image}
-                                        alt="Original"
-                                        className="absolute top-0 left-0 pointer-events-none select-none"
-                                        style={{ width: '100%', height: '100%' }}
-                                    />
-                                    <canvas
-                                        ref={canvasRef}
-                                        className={`absolute top-0 left-0 pointer-events-none transition-opacity duration-200 ${showMask ? 'opacity-100' : 'opacity-0'}`}
-                                    />
+                                <Brush className="w-4 h-4" />
+                                <span className="hidden sm:inline">Brush</span>
+                            </button>
+                            <button
+                                onClick={() => { setIsPanning(false); setTool('eraser'); }}
+                                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all
+                                    ${!isPanning && tool === 'eraser'
+                                        ? 'bg-white text-primary-600 shadow-sm ring-1 ring-black/5'
+                                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'}`}
+                                title="Eraser Tool (E)"
+                            >
+                                <Eraser className="w-4 h-4" />
+                                <span className="hidden sm:inline">Erase</span>
+                            </button>
+                            <button
+                                onClick={() => { setIsPanning(false); setTool('rectangle'); }}
+                                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all
+                                    ${!isPanning && tool === 'rectangle'
+                                        ? 'bg-white text-primary-600 shadow-sm ring-1 ring-black/5'
+                                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'}`}
+                                title="Rectangle Tool (R)"
+                            >
+                                <Square className="w-4 h-4" />
+                                <span className="hidden sm:inline">Rect</span>
+                            </button>
+                            <div className="w-px bg-gray-300 mx-1 my-1"></div>
+                            <button
+                                onClick={() => setIsPanning(true)}
+                                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all
+                                    ${isPanning
+                                        ? 'bg-white text-primary-600 shadow-sm ring-1 ring-black/5'
+                                        : 'text-gray-500 hover:text-gray-700 hover:bg-gray-200/50'}`}
+                                title="Pan Tool (H)"
+                            >
+                                <Move className="w-4 h-4" />
+                                <span className="hidden sm:inline">Pan</span>
+                            </button>
+                        </div>
 
-                                    {/* Brush Cursor */}
-                                    {!isPanning && !isDrawing && tool !== 'rectangle' && (
-                                        <div
-                                            className={`fixed border-2 rounded-full opacity-50 pointer-events-none z-500 ${tool === 'eraser' ? 'border-white bg-white/30' : 'border-red-500'}`}
-                                            style={{
-                                                width: brushSize,
-                                                height: brushSize,
-                                                left: cursorPos.x - brushSize / 2,
-                                                top: cursorPos.y - brushSize / 2,
-                                                position: 'absolute',
-                                                borderWidth: `${2 / zoom}px`
-                                            }}
-                                        />
-                                    )}
-
-                                    {/* Rectangle Selection Preview */}
-                                    {isDrawing && tool === 'rectangle' && rectSelection && (
-                                        <div
-                                            className="absolute border-2 border-red-500 bg-red-500/20 pointer-events-none"
-                                            style={{
-                                                left: Math.min(rectSelection.x, rectSelection.x + rectSelection.w),
-                                                top: Math.min(rectSelection.y, rectSelection.y + rectSelection.h),
-                                                width: Math.abs(rectSelection.w),
-                                                height: Math.abs(rectSelection.h),
-                                                borderWidth: `${2 / zoom}px`
-                                            }}
-                                        />
-                                    )}
+                        {/* Center: Settings */}
+                        <div className="flex items-center gap-6 px-4 border-l border-r border-gray-100 h-10">
+                            {/* Brush Size */}
+                            <div className="flex flex-col items-center group relative">
+                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Brush Size</label>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xs text-gray-500 w-4 text-center">{brushSize}</span>
+                                    <input
+                                        type="range"
+                                        min="5"
+                                        max="100"
+                                        value={brushSize}
+                                        onChange={(e) => setBrushSize(parseInt(e.target.value))}
+                                        className="w-24 h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary-600 hover:bg-gray-300 transition-colors"
+                                    />
                                 </div>
                             </div>
 
-                            <div className="mt-4 flex justify-between items-center">
-                                <button
-                                    onClick={handleClearMask}
-                                    className="text-gray-500 hover:text-red-500 font-medium px-4 py-2 flex items-center space-x-2"
-                                >
-                                    <Trash2 className="w-4 h-4" />
-                                    <span>Reset Mask</span>
+                            {/* Inpaint Radius */}
+                            <div className="flex flex-col items-center">
+                                <label className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">AI Radius</label>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xs text-gray-500 w-4 text-center">{inpaintRadius}</span>
+                                    <input
+                                        type="range"
+                                        min="1"
+                                        max="20"
+                                        value={inpaintRadius}
+                                        onChange={(e) => setInpaintRadius(parseInt(e.target.value))}
+                                        className="w-24 h-1.5 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-primary-600 hover:bg-gray-300 transition-colors"
+                                    />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Right: Actions */}
+                        <div className="flex items-center gap-2">
+                            <button onClick={handleUndo} disabled={historyStep < 0} className="p-2 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-lg disabled:opacity-30 disabled:pointer-events-none transition-colors" title="Undo (Ctrl+Z)">
+                                <Undo className="w-5 h-5" />
+                            </button>
+                            <button onClick={handleRedo} disabled={historyStep >= history.length - 1} className="p-2 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-lg disabled:opacity-30 disabled:pointer-events-none transition-colors" title="Redo (Ctrl+Y)">
+                                <Redo className="w-5 h-5" />
+                            </button>
+                            <div className="w-px bg-gray-300 h-6 mx-1"></div>
+
+                            <button onClick={handleZoomOut} className="p-2 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">
+                                <ZoomOut className="w-5 h-5" />
+                            </button>
+                            <span className="text-xs font-mono w-10 text-center text-gray-500">{Math.round(zoom * 100)}%</span>
+                            <button onClick={handleZoomIn} className="p-2 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors">
+                                <ZoomIn className="w-5 h-5" />
+                            </button>
+                            <button onClick={handleResetView} className="p-2 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-lg transition-colors" title="Fit to Screen">
+                                <RotateCcw className="w-4 h-4" />
+                            </button>
+
+                            <button
+                                onClick={() => setShowMask(!showMask)}
+                                className={`ml-2 p-2 rounded-lg transition-all border ${!showMask ? 'bg-gray-100 text-gray-400 border-gray-200' : 'bg-red-50 text-red-600 border-red-100'}`}
+                                title="Toggle Mask Visibility"
+                            >
+                                {showMask ? <Eye className="w-5 h-5" /> : <EyeOff className="w-5 h-5" />}
+                            </button>
+
+                            {/* Shortcuts Help */}
+                            <div className="relative group ml-2">
+                                <button className="p-2 text-primary-600 hover:bg-primary-50 rounded-full transition-colors">
+                                    <HelpCircle className="w-5 h-5" />
                                 </button>
-
-                                <div className="flex space-x-4">
-                                    <button
-                                        onClick={() => setImage(null)}
-                                        className="text-gray-500 hover:text-gray-700 font-medium px-4 py-2"
-                                    >
-                                        Upload New
-                                    </button>
-                                    <button
-                                        onClick={handleRemoveWatermark}
-                                        disabled={isProcessing || !isOpenCVReady}
-                                        className={`
-                                            flex items-center space-x-2 px-8 py-3 rounded-xl font-bold text-white shadow-lg transform transition-all duration-200
-                                            ${isProcessing || !isOpenCVReady
-                                                ? 'bg-gray-400 cursor-wait'
-                                                : 'bg-gradient-to-r from-primary-600 to-accent-600 hover:scale-105 hover:shadow-xl'
-                                            }
-                                        `}
-                                    >
-                                        {isProcessing ? (
-                                            <>
-                                                <Wand2 className="w-5 h-5 animate-spin" />
-                                                <span>Processing...</span>
-                                            </>
-                                        ) : (
-                                            <>
-                                                <Sparkles className="w-5 h-5" />
-                                                <span>Remove Object</span>
-                                            </>
-                                        )}
-                                    </button>
+                                <div className="absolute right-0 top-full mt-3 w-56 bg-white text-gray-700 text-xs rounded-xl p-4 shadow-xl border border-gray-100 opacity-0 group-hover:opacity-100 transition-all z-50 pointer-events-none transform origin-top-right scale-95 group-hover:scale-100">
+                                    <div className="font-bold mb-2 text-gray-900 text-sm flex items-center gap-2">
+                                        <ImageIcon className="w-4 h-4" />
+                                        Shortcuts
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <div className="flex justify-between"><span>Brush Tool</span> <kbd className="bg-gray-100 px-1.5 rounded border border-gray-200 font-mono">B</kbd></div>
+                                        <div className="flex justify-between"><span>Eraser Tool</span> <kbd className="bg-gray-100 px-1.5 rounded border border-gray-200 font-mono">E</kbd></div>
+                                        <div className="flex justify-between"><span>Rectangle</span> <kbd className="bg-gray-100 px-1.5 rounded border border-gray-200 font-mono">R</kbd></div>
+                                        <div className="flex justify-between"><span>Pan Tool</span> <kbd className="bg-gray-100 px-1.5 rounded border border-gray-200 font-mono">H</kbd></div>
+                                        <div className="flex justify-between"><span>Brush Size</span> <kbd className="bg-gray-100 px-1.5 rounded border border-gray-200 font-mono">[ ]</kbd></div>
+                                        <div className="flex justify-between"><span>Undo</span> <kbd className="bg-gray-100 px-1.5 rounded border border-gray-200 font-mono">Ctrl+Z</kbd></div>
+                                    </div>
                                 </div>
                             </div>
-
-                            {error && (
-                                <div className="mt-4 p-4 bg-red-50 text-red-600 rounded-xl flex items-center space-x-2 animate-fade-in">
-                                    <AlertCircle className="w-5 h-5 flex-shrink-0" />
-                                    <span>{error}</span>
-                                </div>
-                            )}
                         </div>
                     </div>
 
-                    {/* Result Section */}
-                    {result && (
-                        <div className="lg:w-1/3 animate-slide-up">
-                            <div className="bg-white p-4 rounded-2xl shadow-xl glass border border-white/20 h-full sticky top-24">
-                                <div className="flex justify-between items-center mb-4 pb-4 border-b border-gray-100">
-                                    <h3 className="font-semibold text-gray-700">Result</h3>
-                                    <span className="text-xs text-gray-400">Time: {processingTime}ms</span>
-                                </div>
+                    {/* Canvas Container */}
+                    <div
+                        className="relative bg-gray-900 overflow-hidden h-[600px] cursor-crosshair select-none flex items-center justify-center shadow-inner"
+                        ref={containerRef}
+                        onMouseDown={handleMouseDown}
+                        onMouseMove={handleMouseMove}
+                        onMouseUp={handleMouseUp}
+                        onMouseLeave={handleMouseUp}
+                        onWheel={handleWheel}
+                    >
+                        {/* Grid Pattern Background */}
+                        <div className="absolute inset-0 opacity-20 pointer-events-none"
+                            style={{
+                                backgroundImage: 'radial-gradient(#4b5563 1px, transparent 1px)',
+                                backgroundSize: '20px 20px'
+                            }}>
+                        </div>
 
-                                <div className="relative rounded-xl overflow-hidden bg-gray-100 border border-gray-200 mb-6 bg-checkered group">
-                                    {/* Compare View Logic */}
-                                    <img
-                                        src={isComparing ? image : result}
-                                        alt="Result"
-                                        className="w-full h-auto"
-                                    />
-                                    {/* Compare Badge */}
-                                    <div className="absolute top-2 right-2">
-                                        <button
-                                            onMouseDown={() => setIsComparing(true)}
-                                            onMouseUp={() => setIsComparing(false)}
-                                            onMouseLeave={() => setIsComparing(false)}
-                                            onTouchStart={() => setIsComparing(true)}
-                                            onTouchEnd={() => setIsComparing(false)}
-                                            className="bg-black/50 hover:bg-black/70 text-white text-xs px-2 py-1 rounded backdrop-blur-sm transition-colors cursor-pointer select-none ring-1 ring-white/20 shadow"
-                                        >
-                                            {isComparing ? "Original" : "Hold to Compare"}
-                                        </button>
-                                    </div>
-                                </div>
-                                <div className="flex flex-col space-y-3">
-                                    <a
-                                        href={result}
-                                        download="transpify-clean.png"
-                                        className="flex items-center justify-center space-x-2 bg-green-600 text-white px-6 py-3 rounded-xl hover:bg-green-700 transition-colors shadow-lg hover:shadow-xl w-full"
-                                    >
-                                        <Download className="w-5 h-5" />
-                                        <span>Download Result</span>
-                                    </a>
-                                </div>
+                        <div
+                            ref={contentRef}
+                            className="relative shadow-2xl transition-transform duration-75"
+                            style={{
+                                transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
+                                transformOrigin: '0 0',
+                                width: imageDimensions.width,
+                                height: imageDimensions.height,
+                                cursor: isPanning ? 'grab' : tool === 'eraser' ? 'cell' : tool === 'rectangle' ? 'crosshair' : 'crosshair',
+                            }}
+                        >
+                            <img
+                                ref={imageRef}
+                                src={image}
+                                alt="Original"
+                                className="absolute top-0 left-0 pointer-events-none select-none"
+                                style={{ width: '100%', height: '100%' }}
+                            />
+                            <canvas
+                                ref={canvasRef}
+                                className={`absolute top-0 left-0 pointer-events-none transition-opacity duration-200 ${showMask ? 'opacity-100' : 'opacity-0'}`}
+                            />
+
+                            {/* Brush Cursor Overlay */}
+                            {!isPanning && !isDrawing && tool !== 'rectangle' && (
+                                <div
+                                    className={`fixed rounded-full pointer-events-none z-50
+                                        ${tool === 'eraser'
+                                            ? 'border-2 border-white bg-black/10 shadow-sm'
+                                            : 'border-2 border-red-500 bg-red-500/20'}`}
+                                    style={{
+                                        width: brushSize,
+                                        height: brushSize,
+                                        left: cursorPos.x - brushSize / 2,
+                                        top: cursorPos.y - brushSize / 2,
+                                        position: 'absolute',
+                                        borderWidth: `${2 / zoom}px`
+                                    }}
+                                />
+                            )}
+
+                            {/* Rectangle Selection Preview */}
+                            {isDrawing && tool === 'rectangle' && rectSelection && (
+                                <div
+                                    className="absolute border-2 border-red-500 bg-red-500/30 pointer-events-none shadow-sm backdrop-blur-[1px]"
+                                    style={{
+                                        left: Math.min(rectSelection.x, rectSelection.x + rectSelection.w),
+                                        top: Math.min(rectSelection.y, rectSelection.y + rectSelection.h),
+                                        width: Math.abs(rectSelection.w),
+                                        height: Math.abs(rectSelection.h),
+                                        borderWidth: `${2 / zoom}px`
+                                    }}
+                                />
+                            )}
+                        </div>
+
+                        {/* Floating Action Bar (Bottom Center of Canvas) */}
+                        <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 flex items-center gap-3 bg-white/90 backdrop-blur-md px-4 py-2 rounded-full shadow-2xl border border-white/50 animate-slide-up">
+                            <button
+                                onClick={handleClearMask}
+                                className="flex items-center gap-2 text-gray-500 hover:text-red-500 px-3 py-1.5 rounded-full hover:bg-red-50 transition-colors text-sm font-medium"
+                            >
+                                <Trash2 className="w-4 h-4" />
+                                <span>Reset Mask</span>
+                            </button>
+                            <div className="w-px h-6 bg-gray-300"></div>
+                            <button
+                                onClick={handleRemoveWatermark}
+                                disabled={isProcessing || !isOpenCVReady}
+                                className={`
+                                    flex items-center gap-2 px-6 py-2 rounded-full font-bold text-white shadow-lg transition-all
+                                    ${isProcessing || !isOpenCVReady
+                                        ? 'bg-gray-400 cursor-wait'
+                                        : 'bg-gradient-to-r from-primary-600 to-accent-600 hover:shadow-primary-500/30 hover:scale-105 active:scale-95'
+                                    }
+                                `}
+                            >
+                                {isProcessing ? (
+                                    <>
+                                        <Wand2 className="w-4 h-4 animate-spin" />
+                                        <span>Remover Running...</span>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Sparkles className="w-4 h-4" />
+                                        <span>Remove Watermark</span>
+                                    </>
+                                )}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Error Message */}
+            {error && (
+                <div className="max-w-2xl mx-auto mt-6 p-4 bg-red-50 border border-red-200 text-red-700 rounded-xl flex items-center gap-3 animate-fade-in shadow-sm">
+                    <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                    <span className="font-medium">{error}</span>
+                </div>
+            )}
+
+            {/* Result Section (Full Width Below) */}
+            {result && (
+                <div className="mt-12 bg-white rounded-2xl shadow-2xl ring-1 ring-gray-100 overflow-hidden animate-slide-up">
+                    <div className="p-6 border-b border-gray-100 bg-gradient-to-r from-gray-50 to-white flex justify-between items-center">
+                        <div>
+                            <h3 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                                <Sparkles className="w-5 h-5 text-accent-500" />
+                                Final Result
+                            </h3>
+                            <p className="text-gray-500 text-sm mt-1">
+                                Image processed successfully in <span className="font-mono font-medium text-gray-900">{processingTime}ms</span>
+                            </p>
+                        </div>
+                        <div className="flex space-x-3">
+                            <button
+                                onClick={() => { setImage(null); setResult(null); }}
+                                className="px-4 py-2 text-gray-500 hover:text-gray-700 font-medium transition-colors"
+                            >
+                                Close
+                            </button>
+                            <a
+                                href={result}
+                                download="transpify-watermark-removed.png"
+                                className="flex items-center gap-2 bg-gray-900 text-white px-5 py-2.5 rounded-xl hover:bg-black transition-all shadow-lg hover:shadow-gray-300/50"
+                            >
+                                <Download className="w-4 h-4" />
+                                <span>Download Image</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div className="p-8 bg-gray-50 flex flex-col items-center">
+                        <div className="relative max-w-5xl w-full rounded-xl overflow-hidden shadow-2xl ring-4 ring-white">
+                            {/* Comparison Logic */}
+                            <img
+                                src={isComparing ? image : result}
+                                alt="Result"
+                                className="w-full h-auto object-contain bg-[url('https://transparenttextures.com/patterns/stardust.png')] bg-gray-200"
+                            />
+
+                            {/* Floating Compare Button */}
+                            <div className="absolute top-6 right-6 z-10">
+                                <button
+                                    onMouseDown={() => setIsComparing(true)}
+                                    onMouseUp={() => setIsComparing(false)}
+                                    onMouseLeave={() => setIsComparing(false)}
+                                    onTouchStart={() => setIsComparing(true)}
+                                    onTouchEnd={() => setIsComparing(false)}
+                                    className={`
+                                        flex items-center gap-2 px-5 py-2.5 rounded-full font-bold backdrop-blur-md shadow-lg ring-1 transition-all select-none
+                                        ${isComparing
+                                            ? 'bg-primary-600/90 text-white ring-primary-400 scale-105'
+                                            : 'bg-white/90 text-gray-800 ring-white/50 hover:bg-white'}
+                                    `}
+                                >
+                                    <Eye className="w-4 h-4" />
+                                    <span>{isComparing ? "Original Image" : "Hold to Compare"}</span>
+                                </button>
+                            </div>
+
+                            {/* Label Badge */}
+                            <div className="absolute bottom-6 left-6 pointer-events-none">
+                                <span className={`px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-wider backdrop-blur-md shadow-sm border
+                                    ${isComparing ? 'bg-amber-100/90 text-amber-800 border-amber-200' : 'bg-green-100/90 text-green-800 border-green-200'}
+                                `}>
+                                    {isComparing ? 'Original' : 'Edited'}
+                                </span>
                             </div>
                         </div>
-                    )}
+
+                        <p className="mt-6 text-gray-400 text-sm flex items-center gap-2">
+                            <AlertCircle className="w-4 h-4" />
+                            If the result is not perfect, try adjusting the mask or radius and run it again.
+                        </p>
+                    </div>
                 </div>
             )}
         </div>

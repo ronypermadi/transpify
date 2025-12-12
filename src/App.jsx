@@ -8,6 +8,8 @@ import ImageConverter from './components/ImageConverter';
 import ImageCropper from './components/ImageCropper';
 import WatermarkRemover from './components/WatermarkRemover';
 
+import ImageToBase64 from './components/ImageToBase64';
+
 function App() {
     return (
         <Router>
@@ -20,6 +22,7 @@ function App() {
                     <Route path="/converter" element={<ImageConverter />} />
                     <Route path="/cropper" element={<ImageCropper />} />
                     <Route path="/watermark-remover" element={<WatermarkRemover />} />
+                    <Route path="/image-to-base64" element={<ImageToBase64 />} />
                 </Routes>
             </div>
         </Router>

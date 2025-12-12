@@ -340,31 +340,39 @@ export default function WatermarkRemover() {
             tempCtx.clearRect(0, 0, size, size);
 
             // OpenAI Logic: Transparent areas are EDITED. Opaque areas are KEPT.
-            // Our UI: User draws 'Mask' (Red).
-            // So we need to make the RED area Transparent, and the rest Opaque.
-
-            // 1. Fill background with Opaque (e.g., White)
+            // 1. Fill background with Opaque White (Keep Area)
             tempCtx.fillStyle = '#FFFFFF';
             tempCtx.fillRect(0, 0, size, size);
 
-            // 2. Draw our Mask strokes
-            // We need to draw them in a way that 'erases' the white background.
-            // Since our mask strokes are semi-transparent red, we need to make them fully opaque for the 'cutting' to work cleanly?
-            // Actually, we can just draw the canvasRef's content with 'destination-out'.
-            // Because canvasRef has valid pixels where user drew (regardless of color/alpha),
-            // 'destination-out' will remove pixels from the background where the new source has pixels.
+            // 2. Prepare a "Hard Mask" from the user's semi-transparent drawing
+            // We need to ensure that ANY pixel the user touched becomes fully transparent (Alpha 0).
+            // Currently canvasRef has rgba(255, 0, 0, 0.5). "destination-out" would only make it 50% transparent.
+            // We need 100% transparency.
 
-            // Ensure we use the exact same position (0,0) as the image
+            const hardMaskCanvas = document.createElement('canvas');
+            hardMaskCanvas.width = imageDimensions.width;
+            hardMaskCanvas.height = imageDimensions.height;
+            const hardCtx = hardMaskCanvas.getContext('2d');
+
+            // Draw current soft mask
+            hardCtx.drawImage(canvasRef.current, 0, 0);
+
+            // Convert to hard mask (Thresholding)
+            const maskData = hardCtx.getImageData(0, 0, imageDimensions.width, imageDimensions.height);
+            const pixelData = maskData.data;
+            for (let i = 0; i < pixelData.length; i += 4) {
+                // If pixel has any opacity (user drew here), max it out to fully opaque
+                // This allows us to use it as a powerful "cutter" in the next step
+                if (pixelData[i + 3] > 0) {
+                    pixelData[i + 3] = 255;
+                }
+            }
+            hardCtx.putImageData(maskData, 0, 0);
+
+            // 3. Cut the holes (Edit Area)
+            // Now we use the fully opaque hard mask to punch clear holes in the white background
             tempCtx.globalCompositeOperation = 'destination-out';
-
-            // We need to ensure the source (canvasRef) is treated as "punching a hole"
-            // If canvasRef has semi-transparent pixels, it might only partially erase.
-            // Better to enable a hack: 
-            // Draw canvasRef to an offscreen canvas first to make it fully opaque, then use that to punch.
-            // Or just draw it many times?
-            // Let's try drawing it directly first. DALL-E is usually forgiving if alpha is 0.
-
-            tempCtx.drawImage(canvasRef.current, 0, 0);
+            tempCtx.drawImage(hardMaskCanvas, 0, 0);
             tempCtx.globalCompositeOperation = 'source-over'; // Reset
 
             const maskBlob = await new Promise(r => tempCanvas.toBlob(r, 'image/png'));

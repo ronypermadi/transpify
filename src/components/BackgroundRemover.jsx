@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useDropzone } from 'react-dropzone';
 import axios from 'axios';
-import { Upload, Download, Eraser, AlertCircle, Zap, Cloud, Info, Sparkles, Shield } from 'lucide-react';
+import { Upload, Download, Eraser, AlertCircle, Zap, Cloud, Info, Sparkles, Shield, Eye, EyeOff } from 'lucide-react';
 import LoadingSpinner from './LoadingSpinner';
 
 export default function BackgroundRemover() {
@@ -10,39 +10,11 @@ export default function BackgroundRemover() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [processingMode, setProcessingMode] = useState('browser');
-    const [apiProvider, setApiProvider] = useState('removebg');
     const [progress, setProgress] = useState('');
-    const [apiStatus, setApiStatus] = useState(null);
-    const [checkingApi, setCheckingApi] = useState(false);
+    const [openaiApiKey, setOpenaiApiKey] = useState('');
+    const [showApiKey, setShowApiKey] = useState(false);
 
-    // Check API status on mount
-    useEffect(() => {
-        const checkApiStatus = async () => {
-            setCheckingApi(true);
-            try {
-                const response = await axios.get('/api/check-api-status');
-                if (response.data.success) {
-                    setApiStatus(response.data.apis);
 
-                    // Auto-select first available API
-                    if (response.data.hasAnyApi) {
-                        const availableApis = Object.keys(response.data.apis).filter(
-                            key => response.data.apis[key].available
-                        );
-                        if (availableApis.length > 0 && !response.data.apis[apiProvider]?.available) {
-                            setApiProvider(availableApis[0]);
-                        }
-                    }
-                }
-            } catch (err) {
-                console.error('Failed to check API status:', err);
-            } finally {
-                setCheckingApi(false);
-            }
-        };
-
-        checkApiStatus();
-    }, []);
 
     const onDrop = useCallback((acceptedFiles) => {
         const file = acceptedFiles[0];
@@ -102,26 +74,35 @@ export default function BackgroundRemover() {
     };
 
     const removeBackgroundAPI = async () => {
+        // Validate API key
+        if (!openaiApiKey || !openaiApiKey.trim()) {
+            setError('OpenAI API key diperlukan. Silakan masukkan API key Anda terlebih dahulu.');
+            return;
+        }
+
+        if (!openaiApiKey.startsWith('sk-')) {
+            setError('Format API key tidak valid. OpenAI API key harus dimulai dengan "sk-"');
+            return;
+        }
+
         setLoading(true);
         setError('');
-        setProgress(`Processing with ${apiProvider.toUpperCase()}...`);
+        setProgress('Processing with OpenAI...');
 
         try {
-            // Call unified backend API endpoint
-            // API keys are stored securely on the server, never exposed to client
             const response = await axios.post('/api/remove-background', {
                 image: originalImage,
-                provider: apiProvider,
+                apiKey: openaiApiKey,
             }, {
-                timeout: 60000, // 60 seconds for large images
+                timeout: 60000,
             });
 
             if (response.data.success) {
                 setProcessedImage(response.data.image);
 
-                // Show experimental warning for Gemini/OpenAI
-                if (response.data.experimental) {
-                    setError(`⚠️ ${response.data.message}\n\nAnalysis: ${response.data.analysis?.substring(0, 200)}...`);
+                // Show info message if available
+                if (response.data.message) {
+                    setError(`ℹ️ ${response.data.message}`);
                 }
             } else {
                 throw new Error(response.data.error || 'Unknown error');
@@ -129,16 +110,16 @@ export default function BackgroundRemover() {
 
             setProgress('');
         } catch (err) {
-            console.error(`Error removing background (${apiProvider}):`, err);
+            console.error('Error removing background (OpenAI):', err);
 
-            let errorMessage = `Gagal menghapus background dengan ${apiProvider.toUpperCase()}.`;
+            let errorMessage = 'Gagal menghapus background dengan OpenAI.';
 
-            if (err.response?.status === 429) {
-                errorMessage = 'Rate limit exceeded. Terlalu banyak request. Tunggu sebentar dan coba lagi.';
-            } else if (err.response?.status === 403) {
-                errorMessage = 'API key tidak valid atau kredit habis. Hubungi administrator.';
+            if (err.response?.status === 401 || err.response?.status === 403) {
+                errorMessage = 'API key tidak valid atau tidak memiliki akses. Periksa kembali API key Anda.';
+            } else if (err.response?.status === 429) {
+                errorMessage = 'Rate limit exceeded atau quota habis. Periksa billing account OpenAI Anda.';
             } else if (err.response?.status === 500) {
-                errorMessage = err.response?.data?.error || 'Server error. Coba provider lain atau hubungi administrator.';
+                errorMessage = err.response?.data?.error || 'Server error. Coba lagi nanti.';
             } else if (err.code === 'ECONNABORTED') {
                 errorMessage = 'Request timeout. Gambar terlalu besar atau koneksi lambat.';
             } else if (err.message) {
@@ -189,61 +170,7 @@ export default function BackgroundRemover() {
             });
     };
 
-    const apiProviders = [
-        // FREE TIER
-        {
-            id: 'huggingface',
-            name: 'Hugging Face',
-            description: 'Free tier - Good quality untuk testing & development',
-            badge: 'Free',
-            badgeColor: 'bg-emerald-100 text-emerald-800',
-            tier: 'free',
-            pricing: '✓ Unlimited (rate limited)',
-            features: ['No credit card', 'Good quality', 'May be slower'],
-        },
-        // PREMIUM TIER
-        {
-            id: 'removebg',
-            name: 'Remove.bg',
-            description: 'Premium - Akurasi tinggi untuk production',
-            badge: 'Premium',
-            badgeColor: 'bg-blue-100 text-blue-800',
-            tier: 'premium',
-            pricing: '50 free/mo, $0.20/img',
-            features: ['High accuracy', 'Fast processing', 'Production ready'],
-        },
-        {
-            id: 'clipdrop',
-            name: 'ClipDrop',
-            description: 'Premium - Kualitas terbaik dari Stability AI',
-            badge: 'Premium+',
-            badgeColor: 'bg-purple-100 text-purple-800',
-            tier: 'premium',
-            pricing: 'From $0.03/image',
-            features: ['Best quality', 'Detail precision', 'Professional'],
-        },
-        // EXPERIMENTAL
-        {
-            id: 'gemini',
-            name: 'Gemini Vision',
-            description: 'Experimental - Image analysis only (demo)',
-            badge: 'Experimental',
-            badgeColor: 'bg-orange-100 text-orange-800',
-            tier: 'experimental',
-            pricing: 'Pay per use',
-            features: ['AI analysis', 'Demo only', 'Not for removal'],
-        },
-        {
-            id: 'openai',
-            name: 'OpenAI Vision',
-            description: 'Experimental - Image analysis only (demo)',
-            badge: 'Experimental',
-            badgeColor: 'bg-yellow-100 text-yellow-800',
-            tier: 'experimental',
-            pricing: 'Pay per use',
-            features: ['GPT-4 Vision', 'Demo only', 'Not for removal'],
-        },
-    ];
+
 
     return (
         <div className="container mx-auto px-4 py-12">
@@ -294,97 +221,105 @@ export default function BackgroundRemover() {
                             </button>
 
                             {/* API Mode */}
-                            {/* API Mode */}
                             <button
-                                disabled
-                                className="p-4 rounded-xl border-2 border-gray-200 bg-gray-50 text-left cursor-not-allowed opacity-75"
+                                onClick={() => setProcessingMode('api')}
+                                className={`p-4 rounded-xl border-2 transition-all duration-200 text-left ${processingMode === 'api'
+                                    ? 'border-primary-500 bg-primary-50'
+                                    : 'border-gray-200 hover:border-primary-300'
+                                    }`}
                             >
                                 <div className="flex items-center mb-2">
-                                    <Cloud className="w-5 h-5 mr-2 text-gray-400" />
-                                    <span className="font-bold text-lg text-gray-500">API Mode</span>
-                                    <span className="ml-auto text-xs bg-amber-100 text-amber-800 px-2 py-1 rounded-full">
-                                        Coming Soon
+                                    <Cloud className="w-5 h-5 mr-2 text-primary-600" />
+                                    <span className="font-bold text-lg">API Mode</span>
+                                    <span className="ml-auto text-xs bg-purple-100 text-purple-800 px-2 py-1 rounded-full">
+                                        OpenAI
                                     </span>
                                 </div>
-                                <p className="text-sm text-gray-500 mb-2">
-                                    API cloud dengan keamanan tinggi. Keys tersimpan di server.
+                                <p className="text-sm text-gray-600 mb-2">
+                                    Gunakan OpenAI API dengan API key Anda sendiri.
                                 </p>
-                                <div className="text-xs text-gray-400">
-                                    ✓ Secure backend • ✓ High quality • ✓ 4 provider options
+                                <div className="text-xs text-gray-500">
+                                    ✓ Your own API key • ✓ No storage • ✓ Full control
                                 </div>
                             </button>
                         </div>
 
-                        {/* API Provider Selector */}
+                        {/* OpenAI API Key Input */}
                         {processingMode === 'api' && (
                             <div className="border-t pt-6">
-                                <div className="flex items-center justify-between mb-3">
-                                    <h4 className="font-semibold text-gray-800 flex items-center">
+                                <div className="mb-4">
+                                    <h4 className="font-semibold text-gray-800 flex items-center mb-2">
                                         <Sparkles className="w-5 h-5 mr-2 text-primary-600" />
-                                        Pilih API Provider
+                                        OpenAI API Key
                                     </h4>
-                                    {checkingApi && <span className="text-xs text-gray-500 animate-pulse">Checking availability...</span>}
+                                    <p className="text-sm text-gray-600 mb-3">
+                                        Masukkan OpenAI API key Anda. API key tidak akan disimpan dan hanya digunakan untuk proses ini.
+                                    </p>
+
+                                    {/* API Key Input Field */}
+                                    <div className="relative">
+                                        <input
+                                            type={showApiKey ? 'text' : 'password'}
+                                            value={openaiApiKey}
+                                            onChange={(e) => setOpenaiApiKey(e.target.value)}
+                                            placeholder="sk-..."
+                                            className="w-full px-4 py-3 pr-12 border-2 border-gray-300 rounded-xl focus:border-primary-500 focus:ring-2 focus:ring-primary-200 outline-none transition-all font-mono text-sm"
+                                        />
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowApiKey(!showApiKey)}
+                                            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
+                                        >
+                                            {showApiKey ? (
+                                                <EyeOff className="w-5 h-5" />
+                                            ) : (
+                                                <Eye className="w-5 h-5" />
+                                            )}
+                                        </button>
+                                    </div>
+
+                                    {/* Helper Info */}
+                                    <div className="mt-3 text-xs text-gray-600 space-y-1">
+                                        <p>
+                                            🔑 Belum punya API key?
+                                            <a
+                                                href="https://platform.openai.com/api-keys"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-primary-600 hover:text-primary-700 ml-1 underline"
+                                            >
+                                                Dapatkan di sini
+                                            </a>
+                                        </p>
+                                        <p>
+                                            💰 Lihat harga:
+                                            <a
+                                                href="https://openai.com/api/pricing/"
+                                                target="_blank"
+                                                rel="noopener noreferrer"
+                                                className="text-primary-600 hover:text-primary-700 ml-1 underline"
+                                            >
+                                                OpenAI Pricing
+                                            </a>
+                                        </p>
+                                    </div>
                                 </div>
 
-                                {/* Warning if no APIs available */}
-                                {apiStatus && !Object.values(apiStatus).some(api => api.available) && (
-                                    <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 mb-4 flex items-start">
-                                        <AlertCircle className="w-4 h-4 text-yellow-600 mr-2 mt-0.5 flex-shrink-0" />
-                                        <div className="text-xs text-yellow-800">
-                                            <p className="font-medium mb-1">No API Keys Configured</p>
-                                            <p>Please configure API keys in Vercel environment variables to use API mode.</p>
-                                        </div>
+                                {/* Warning Info */}
+                                <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3 mb-4 flex items-start">
+                                    <AlertCircle className="w-4 h-4 text-yellow-600 mr-2 mt-0.5 flex-shrink-0" />
+                                    <div className="text-xs text-yellow-800">
+                                        <p className="font-medium mb-1">⚠️ Catatan Penting</p>
+                                        <p>OpenAI Vision API tidak secara native mendukung background removal. Hasil mungkin berupa image analysis atau experimental processing. Untuk hasil terbaik, gunakan Browser Mode atau pertimbangkan API khusus background removal.</p>
                                     </div>
-                                )}
-
-                                <div className="grid sm:grid-cols-2 gap-3">
-                                    {apiProviders.map((provider) => {
-                                        const isAvailable = apiStatus ? apiStatus[provider.id]?.available : false;
-                                        const isSelected = apiProvider === provider.id;
-
-                                        return (
-                                            <button
-                                                key={provider.id}
-                                                onClick={() => isAvailable && setApiProvider(provider.id)}
-                                                disabled={!isAvailable}
-                                                className={`p-3 rounded-lg border-2 transition-all duration-200 text-left relative ${isSelected
-                                                    ? 'border-primary-500 bg-primary-50 shadow-sm'
-                                                    : 'border-gray-200 hover:border-primary-200'
-                                                    } ${!isAvailable ? 'opacity-60 cursor-not-allowed bg-gray-50 hover:border-gray-200' : ''}`}
-                                            >
-                                                <div className="flex items-start justify-between mb-1">
-                                                    <span className="font-bold text-sm">{provider.name}</span>
-                                                    <span
-                                                        className={`text-xs px-2 py-0.5 rounded-full ${isAvailable ? provider.badgeColor : 'bg-gray-200 text-gray-600'
-                                                            }`}
-                                                    >
-                                                        {isAvailable ? provider.badge : 'Not Configured'}
-                                                    </span>
-                                                </div>
-                                                <p className="text-xs text-gray-600 mb-1.5">{provider.description}</p>
-                                                {provider.pricing && (
-                                                    <p className="text-xs font-medium text-primary-700 mb-2">
-                                                        💰 {provider.pricing}
-                                                    </p>
-                                                )}
-                                                <div className="flex flex-wrap gap-1">
-                                                    {provider.features.map((feature, idx) => (
-                                                        <span key={idx} className="text-xs text-gray-500">
-                                                            {feature}{idx < provider.features.length - 1 ? ' •' : ''}
-                                                        </span>
-                                                    ))}
-                                                </div>
-                                            </button>
-                                        );
-                                    })}
                                 </div>
 
                                 {/* Security Info */}
-                                <div className="mt-4 bg-green-50 border border-green-200 rounded-xl p-3 flex items-start">
+                                <div className="bg-green-50 border border-green-200 rounded-xl p-3 flex items-start">
                                     <Shield className="w-4 h-4 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
                                     <div className="text-xs text-green-800">
-                                        <p className="font-medium mb-1">🔒 Production Security</p>
-                                        <p>API keys are securely stored on the server and never exposed to your browser. Administrator configures keys via environment variables on Vercel.</p>
+                                        <p className="font-medium mb-1">🔒 Keamanan & Privasi</p>
+                                        <p>API key Anda tidak akan disimpan di mana pun (tidak di browser, tidak di server). Setiap kali Anda menggunakan fitur ini, Anda harus memasukkan API key lagi.</p>
                                     </div>
                                 </div>
                             </div>
@@ -464,7 +399,7 @@ export default function BackgroundRemover() {
                                     <Eraser className="w-5 h-5 inline-block mr-2" />
                                     {processingMode === 'browser'
                                         ? 'Hapus Background (Browser)'
-                                        : `Hapus Background (${apiProviders.find(p => p.id === apiProvider)?.name})`
+                                        : 'Hapus Background (OpenAI)'
                                     }
                                 </button>
                             )}

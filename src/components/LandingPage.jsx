@@ -78,11 +78,11 @@ export default function LandingPage() {
         },
     ];
 
-    const stats = [
-        { icon: Users, value: '10K+', label: 'Active Users' },
-        { icon: Star, value: '50K+', label: 'Images Processed' },
-        { icon: Award, value: '99%', label: 'Satisfaction' },
-    ];
+    // const stats = [
+    //     { icon: Users, value: '10K+', label: 'Active Users' },
+    //     { icon: Star, value: '50K+', label: 'Images Processed' },
+    //     { icon: Award, value: '99%', label: 'Satisfaction' },
+    // ];
 
     return (
         <div className="min-h-screen">
@@ -134,7 +134,7 @@ export default function LandingPage() {
                         </div>
 
                         {/* Stats */}
-                        <div className="flex flex-wrap gap-8 justify-center text-center">
+                        {/* <div className="flex flex-wrap gap-8 justify-center text-center">
                             {stats.map((stat, index) => (
                                 <div key={index} className="flex items-center gap-3 bg-white/60 backdrop-blur-sm px-6 py-3 rounded-2xl border border-white/50 shadow-sm">
                                     <div className="bg-gradient-to-br from-primary-500 to-accent-500 p-2 rounded-lg">
@@ -146,7 +146,7 @@ export default function LandingPage() {
                                     </div>
                                 </div>
                             ))}
-                        </div>
+                        </div> */}
                     </div>
                 </div>
             </div>

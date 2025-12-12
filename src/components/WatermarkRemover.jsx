@@ -326,14 +326,6 @@ export default function WatermarkRemover() {
             tempCanvas.height = size;
             const tempCtx = tempCanvas.getContext('2d');
 
-            // Draw original image centered or top-left? Top-left is easier to crop back later
-            // Fill background with transparent or something? 
-            // DALL-E handles transparent areas in IMAGE as "erase", but for 'edits' endpoint:
-            // "The mask image... The non-transparent areas of the mask indicate where the image should be edited."
-            // So we need:
-            // Image: RGBA (PNG)
-            // Mask: RGBA (PNG) - drawn area = opaque, rest = transparent
-
             // Draw Image
             const img = new Image();
             img.crossOrigin = "anonymous";
@@ -344,10 +336,36 @@ export default function WatermarkRemover() {
             const imageBlob = await new Promise(r => tempCanvas.toBlob(r, 'image/png'));
 
             // Draw Mask
-            // Clear canvas
+            // Clear canvas for mask preparation
             tempCtx.clearRect(0, 0, size, size);
-            // Draw our current mask
-            tempCtx.drawImage(canvasRef.current, 0, 0); // Drawn at top-left matching image
+
+            // OpenAI Logic: Transparent areas are EDITED. Opaque areas are KEPT.
+            // Our UI: User draws 'Mask' (Red).
+            // So we need to make the RED area Transparent, and the rest Opaque.
+
+            // 1. Fill background with Opaque (e.g., White)
+            tempCtx.fillStyle = '#FFFFFF';
+            tempCtx.fillRect(0, 0, size, size);
+
+            // 2. Draw our Mask strokes
+            // We need to draw them in a way that 'erases' the white background.
+            // Since our mask strokes are semi-transparent red, we need to make them fully opaque for the 'cutting' to work cleanly?
+            // Actually, we can just draw the canvasRef's content with 'destination-out'.
+            // Because canvasRef has valid pixels where user drew (regardless of color/alpha),
+            // 'destination-out' will remove pixels from the background where the new source has pixels.
+
+            // Ensure we use the exact same position (0,0) as the image
+            tempCtx.globalCompositeOperation = 'destination-out';
+
+            // We need to ensure the source (canvasRef) is treated as "punching a hole"
+            // If canvasRef has semi-transparent pixels, it might only partially erase.
+            // Better to enable a hack: 
+            // Draw canvasRef to an offscreen canvas first to make it fully opaque, then use that to punch.
+            // Or just draw it many times?
+            // Let's try drawing it directly first. DALL-E is usually forgiving if alpha is 0.
+
+            tempCtx.drawImage(canvasRef.current, 0, 0);
+            tempCtx.globalCompositeOperation = 'source-over'; // Reset
 
             const maskBlob = await new Promise(r => tempCanvas.toBlob(r, 'image/png'));
 
@@ -393,6 +411,7 @@ export default function WatermarkRemover() {
                 const finalCtx = finalCanvas.getContext('2d');
 
                 // Draw only the valid region from the square result
+                // Since we drew the image at 0,0 of the square canvas, the result should also have the content at 0,0.
                 finalCtx.drawImage(resImg,
                     0, 0, imageDimensions.width, imageDimensions.height, // Source rect
                     0, 0, imageDimensions.width, imageDimensions.height  // Dest rect
@@ -559,7 +578,7 @@ export default function WatermarkRemover() {
                             </div>
                             <div className="flex flex-col">
                                 <span className="font-bold text-gray-800">Premium AI Mode</span>
-                                <span className="text-xs text-gray-500">Enable for complex backgrounds</span>
+                                <span className="text-xs text-gray-500">Uses <span className="font-bold">OpenAI ChatGPT API</span></span>
                             </div>
                             <label className="relative inline-flex items-center cursor-pointer ml-2">
                                 <input

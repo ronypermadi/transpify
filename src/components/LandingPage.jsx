@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Eraser, Minimize2, RefreshCw, Crop, Sparkles, Zap, Shield } from 'lucide-react';
+import { Eraser, Minimize2, RefreshCw, Crop, Sparkles, Zap, Shield, Wand2 } from 'lucide-react';
 
 export default function LandingPage() {
     const tools = [
@@ -10,6 +10,13 @@ export default function LandingPage() {
             icon: Eraser,
             path: '/background-remover',
             gradient: 'from-purple-500 to-pink-500',
+        },
+        {
+            title: 'Watermark Remover',
+            description: 'Hapus watermark atau objek yang tidak diinginkan',
+            icon: Wand2,
+            path: '/watermark-remover',
+            gradient: 'from-violet-500 to-fuchsia-500',
         },
         {
             title: 'Image Compressor',

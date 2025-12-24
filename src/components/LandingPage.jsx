@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Eraser, Minimize2, RefreshCw, Crop, Sparkles, Zap, Shield, Wand2, FileCode, ZoomIn, ArrowRight, Star, Users, Award, Layout } from 'lucide-react';
+import { Eraser, Minimize2, RefreshCw, Crop, Sparkles, Zap, Shield, Wand2, FileCode, ZoomIn, ArrowRight, Star, Users, Award, Layout, QrCode } from 'lucide-react';
 
 export default function LandingPage() {
     const tools = [
@@ -61,6 +61,14 @@ export default function LandingPage() {
             icon: Layout,
             path: '/merger',
             gradient: 'from-amber-500 to-orange-500',
+            badge: 'New',
+        },
+        {
+            title: 'QR Code Generator',
+            description: 'Buat QR Code dengan logo dan warna custom',
+            icon: QrCode,
+            path: '/qrcode',
+            gradient: 'from-pink-500 to-rose-500',
             badge: 'New',
         },
     ];

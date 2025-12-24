@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Eraser, Minimize2, RefreshCw, Crop, Sparkles, Zap, Shield, Wand2, FileCode, ZoomIn, ArrowRight, Star, Users, Award } from 'lucide-react';
+import { Eraser, Minimize2, RefreshCw, Crop, Sparkles, Zap, Shield, Wand2, FileCode, ZoomIn, ArrowRight, Star, Users, Award, Layout } from 'lucide-react';
 
 export default function LandingPage() {
     const tools = [
@@ -54,6 +54,14 @@ export default function LandingPage() {
             icon: FileCode,
             path: '/image-to-base64',
             gradient: 'from-indigo-500 to-purple-500',
+        },
+        {
+            title: 'Image Merger',
+            description: 'Gabungkan beberapa gambar menjadi satu layout',
+            icon: Layout,
+            path: '/merger',
+            gradient: 'from-amber-500 to-orange-500',
+            badge: 'New',
         },
     ];
 
@@ -205,8 +213,8 @@ export default function LandingPage() {
                                 {tool.badge && (
                                     <div className="absolute top-4 right-4 z-10">
                                         <span className={`text-xs font-bold px-3 py-1 rounded-full ${tool.badge === 'New'
-                                                ? 'bg-green-500 text-white'
-                                                : 'bg-yellow-400 text-gray-800'
+                                            ? 'bg-green-500 text-white'
+                                            : 'bg-yellow-400 text-gray-800'
                                             } shadow-lg`}>
                                             {tool.badge}
                                         </span>

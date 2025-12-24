@@ -10,6 +10,7 @@ import WatermarkRemover from './components/WatermarkRemover';
 
 import ImageToBase64 from './components/ImageToBase64';
 import ImageUpscaler from './components/ImageUpscaler';
+import ImageMerger from './components/ImageMerger';
 
 function App() {
     return (
@@ -25,6 +26,7 @@ function App() {
                     <Route path="/watermark-remover" element={<WatermarkRemover />} />
                     <Route path="/image-to-base64" element={<ImageToBase64 />} />
                     <Route path="/upscaler" element={<ImageUpscaler />} />
+                    <Route path="/merger" element={<ImageMerger />} />
                 </Routes>
             </div>
         </Router>

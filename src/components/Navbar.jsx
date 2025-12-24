@@ -15,6 +15,7 @@ export default function Navbar() {
         { path: '/watermark-remover', label: 'Watermark Remover' },
         { path: '/image-to-base64', label: 'Image to Base64' },
         { path: '/upscaler', label: 'Upscaler' },
+        { path: '/merger', label: 'Image Merger' },
     ];
 
     return (

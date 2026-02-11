@@ -27,6 +27,9 @@ export default function Navbar() {
 
     const tools = [
         { path: '/background-remover', label: 'Background Remover' },
+        { path: '/svg-to-image', label: 'SVG to Image' },
+        { path: '/privacy-cleaner', label: 'Privacy Cleaner' },
+        { path: '/color-palette', label: 'Color Palette' },
         { path: '/upscaler', label: 'Image Upscaler' },
         { path: '/merger', label: 'Image Merger' },
         { path: '/compressor', label: 'Compressor' },
@@ -57,8 +60,8 @@ export default function Navbar() {
                         <Link
                             to="/"
                             className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${location.pathname === '/'
-                                    ? 'bg-primary-50 text-primary-600'
-                                    : 'text-gray-600 hover:text-primary-600 hover:bg-gray-50'
+                                ? 'bg-primary-50 text-primary-600'
+                                : 'text-gray-600 hover:text-primary-600 hover:bg-gray-50'
                                 }`}
                         >
                             Home
@@ -79,8 +82,8 @@ export default function Navbar() {
                                             key={tool.path}
                                             to={tool.path}
                                             className={`block px-4 py-2 rounded-lg text-sm transition-colors ${location.pathname === tool.path
-                                                    ? 'bg-primary-50 text-primary-600 font-medium'
-                                                    : 'text-gray-600 hover:bg-gray-50 hover:text-primary-600'
+                                                ? 'bg-primary-50 text-primary-600 font-medium'
+                                                : 'text-gray-600 hover:bg-gray-50 hover:text-primary-600'
                                                 }`}
                                         >
                                             {tool.label}
@@ -135,8 +138,8 @@ export default function Navbar() {
                         <Link
                             to="/"
                             className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-colors ${location.pathname === '/'
-                                    ? 'bg-primary-50 text-primary-600 font-medium'
-                                    : 'text-gray-600 hover:bg-gray-50 hover:text-primary-600'
+                                ? 'bg-primary-50 text-primary-600 font-medium'
+                                : 'text-gray-600 hover:bg-gray-50 hover:text-primary-600'
                                 }`}
                         >
                             <Home className="w-5 h-5" />
@@ -152,8 +155,8 @@ export default function Navbar() {
                                 key={tool.path}
                                 to={tool.path}
                                 className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-colors ${location.pathname === tool.path
-                                        ? 'bg-primary-50 text-primary-600 font-medium'
-                                        : 'text-gray-600 hover:bg-gray-50 hover:text-primary-600'
+                                    ? 'bg-primary-50 text-primary-600 font-medium'
+                                    : 'text-gray-600 hover:bg-gray-50 hover:text-primary-600'
                                     }`}
                             >
                                 <Wrench className="w-4 h-4 opacity-70" />

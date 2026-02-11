@@ -12,6 +12,9 @@ import ImageToBase64 from './components/ImageToBase64';
 import ImageUpscaler from './components/ImageUpscaler';
 import ImageMerger from './components/ImageMerger';
 import QRCodeGenerator from './components/QRCodeGenerator';
+import SVGToImage from './components/SVGToImage';
+import PrivacyCleaner from './components/PrivacyCleaner';
+import ColorPalette from './components/ColorPalette';
 
 function App() {
     return (
@@ -29,6 +32,9 @@ function App() {
                     <Route path="/upscaler" element={<ImageUpscaler />} />
                     <Route path="/merger" element={<ImageMerger />} />
                     <Route path="/qrcode" element={<QRCodeGenerator />} />
+                    <Route path="/svg-to-image" element={<SVGToImage />} />
+                    <Route path="/privacy-cleaner" element={<PrivacyCleaner />} />
+                    <Route path="/color-palette" element={<ColorPalette />} />
                 </Routes>
             </div>
         </Router>

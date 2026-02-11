@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Eraser, Minimize2, RefreshCw, Crop, Sparkles, Zap, Shield, Wand2, FileCode, ZoomIn, ArrowRight, Star, Users, Award, Layout, QrCode } from 'lucide-react';
+import { Eraser, Minimize2, RefreshCw, Crop, Sparkles, Zap, Shield, Wand2, FileCode, ZoomIn, ArrowRight, Star, Users, Award, Layout, QrCode, FileJson, Palette } from 'lucide-react';
 
 export default function LandingPage() {
     const tools = [
@@ -13,12 +13,35 @@ export default function LandingPage() {
             badge: 'Popular',
         },
         {
+            title: 'SVG to Image',
+            description: 'Konversi file vektor SVG ke format PNG atau JPEG dengan resolusi tinggi',
+            icon: FileJson,
+            path: '/svg-to-image',
+            gradient: 'from-indigo-500 to-purple-500',
+            badge: 'New',
+        },
+        {
+            title: 'Privacy Cleaner',
+            description: 'Hapus metadata EXIF (lokasi, perangkat) dari foto untuk keamanan privasi',
+            icon: Shield,
+            path: '/privacy-cleaner',
+            gradient: 'from-red-500 to-pink-500',
+            badge: 'New',
+        },
+        {
+            title: 'Color Palette',
+            description: 'Ekstrak skema warna dominan dan kode HEX dari gambar Anda',
+            icon: Palette,
+            path: '/color-palette',
+            gradient: 'from-green-500 to-emerald-500',
+            badge: 'New',
+        },
+        {
             title: 'Image Upscaler',
             description: 'Tingkatkan resolusi dan kualitas gambar dengan AI',
             icon: ZoomIn,
             path: '/upscaler',
             gradient: 'from-sky-500 to-blue-500',
-            badge: 'New',
         },
         {
             title: 'Watermark Remover',
@@ -61,7 +84,6 @@ export default function LandingPage() {
             icon: Layout,
             path: '/merger',
             gradient: 'from-amber-500 to-orange-500',
-            badge: 'New',
         },
         {
             title: 'QR Code Generator',
@@ -69,7 +91,6 @@ export default function LandingPage() {
             icon: QrCode,
             path: '/qrcode',
             gradient: 'from-pink-500 to-rose-500',
-            badge: 'New',
         },
     ];
 
@@ -205,7 +226,7 @@ export default function LandingPage() {
                             Pilih Tool yang Anda Butuhkan
                         </h2>
                         <p className="text-lg text-gray-600">
-                            7 tools powerful untuk semua kebutuhan image processing Anda
+                            12 tools powerful untuk semua kebutuhan image processing Anda
                         </p>
                     </div>
 

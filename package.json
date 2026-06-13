@@ -15,6 +15,7 @@
     "axios": "^1.6.2",
     "file-saver": "^2.0.5",
     "heic2any": "^0.0.4",
+    "jszip": "^3.10.1",
     "lucide-react": "^0.294.0",
     "node-vibrant": "^4.0.4",
     "qrcode.react": "^4.2.0",

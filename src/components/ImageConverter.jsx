@@ -19,24 +19,43 @@ export default function ImageConverter() {
             // Check if file is HEIC
             if (file.type === 'image/heic' || file.type === 'image/heif' || file.name.toLowerCase().endsWith('.heic') || file.name.toLowerCase().endsWith('.heif')) {
                 setLoading(true);
-                try {
-                    const heic2any = (await import('heic2any')).default;
-                    const convertedBlob = await heic2any({
-                        blob: file,
-                        toType: "image/jpeg",
-                        quality: 0.95
-                    });
-                    
-                    const blob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
-                    
-                    const reader = new FileReader();
-                    reader.onload = () => {
-                        setOriginalImage(reader.result);
-                        setProcessedImage(null);
-                        setLoading(false);
-                    };
-                    reader.readAsDataURL(blob);
-                } catch (err) {
+                
+                // First try: Native Browser Support (Safari/macOS often supports HEIC directly)
+                const objectUrl = URL.createObjectURL(file);
+                const nativeImg = new Image();
+                nativeImg.onload = () => {
+                    // Browser supports it! Draw to canvas to get JPEG
+                    const canvas = document.createElement('canvas');
+                    canvas.width = nativeImg.width;
+                    canvas.height = nativeImg.height;
+                    const ctx = canvas.getContext('2d');
+                    ctx.drawImage(nativeImg, 0, 0);
+                    setOriginalImage(canvas.toDataURL('image/jpeg', 0.95));
+                    setProcessedImage(null);
+                    setLoading(false);
+                    URL.revokeObjectURL(objectUrl);
+                };
+                nativeImg.onerror = async () => {
+                    URL.revokeObjectURL(objectUrl);
+                    // Native failed, try heic2any
+                    try {
+                        const heic2any = (await import('heic2any')).default;
+                        const convertedBlob = await heic2any({
+                            blob: file,
+                            toType: "image/jpeg",
+                            quality: 0.95
+                        });
+                        
+                        const blob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
+                        
+                        const reader = new FileReader();
+                        reader.onload = () => {
+                            setOriginalImage(reader.result);
+                            setProcessedImage(null);
+                            setLoading(false);
+                        };
+                        reader.readAsDataURL(blob);
+                    } catch (err) {
                     console.error("HEIC conversion error on client:", err);
                     
                     // Fallback to server side
@@ -66,6 +85,8 @@ export default function ImageConverter() {
                         setLoading(false);
                     }
                 }
+                };
+                nativeImg.src = objectUrl;
             } else {
                 const reader = new FileReader();
                 reader.onload = () => {

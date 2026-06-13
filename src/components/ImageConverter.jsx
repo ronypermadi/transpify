@@ -3,6 +3,7 @@ import { useDropzone } from 'react-dropzone';
 import axios from 'axios';
 import { Upload, Download, RefreshCw, AlertCircle } from 'lucide-react';
 import LoadingSpinner from './LoadingSpinner';
+import heic2any from 'heic2any';
 
 export default function ImageConverter() {
     const [originalImage, setOriginalImage] = useState(null);
@@ -11,23 +12,50 @@ export default function ImageConverter() {
     const [error, setError] = useState('');
     const [outputFormat, setOutputFormat] = useState('png');
 
-    const onDrop = useCallback((acceptedFiles) => {
+    const onDrop = useCallback(async (acceptedFiles) => {
         const file = acceptedFiles[0];
         if (file) {
-            const reader = new FileReader();
-            reader.onload = () => {
-                setOriginalImage(reader.result);
-                setProcessedImage(null);
-                setError('');
-            };
-            reader.readAsDataURL(file);
+            setError('');
+            
+            // Check if file is HEIC
+            if (file.type === 'image/heic' || file.type === 'image/heif' || file.name.toLowerCase().endsWith('.heic') || file.name.toLowerCase().endsWith('.heif')) {
+                setLoading(true);
+                try {
+                    const convertedBlob = await heic2any({
+                        blob: file,
+                        toType: "image/jpeg",
+                        quality: 0.95
+                    });
+                    
+                    const blob = Array.isArray(convertedBlob) ? convertedBlob[0] : convertedBlob;
+                    
+                    const reader = new FileReader();
+                    reader.onload = () => {
+                        setOriginalImage(reader.result);
+                        setProcessedImage(null);
+                        setLoading(false);
+                    };
+                    reader.readAsDataURL(blob);
+                } catch (err) {
+                    console.error("HEIC conversion error:", err);
+                    setError('Gagal membaca file HEIC.');
+                    setLoading(false);
+                }
+            } else {
+                const reader = new FileReader();
+                reader.onload = () => {
+                    setOriginalImage(reader.result);
+                    setProcessedImage(null);
+                };
+                reader.readAsDataURL(file);
+            }
         }
     }, []);
 
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
         onDrop,
         accept: {
-            'image/*': ['.png', '.jpg', '.jpeg', '.webp', '.gif', '.bmp']
+            'image/*': ['.png', '.jpg', '.jpeg', '.webp', '.gif', '.bmp', '.heic', '.heif']
         },
         maxFiles: 1,
         maxSize: 20971520, // 20MB
@@ -145,18 +173,27 @@ export default function ImageConverter() {
                     <div
                         {...getRootProps()}
                         className={`card border-2 border-dashed ${isDragActive ? 'border-primary-500 bg-primary-50' : 'border-gray-300'
-                            } cursor-pointer hover:border-primary-500 transition-all duration-300 py-16 text-center`}
+                            } cursor-pointer hover:border-primary-500 transition-all duration-300 py-16 text-center ${loading ? 'opacity-50 pointer-events-none' : ''}`}
                     >
                         <input {...getInputProps()} />
-                        <Upload className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-                        {isDragActive ? (
-                            <p className="text-xl text-primary-600 font-medium">Lepaskan file di sini...</p>
+                        {loading ? (
+                            <div className="flex flex-col items-center justify-center">
+                                <LoadingSpinner />
+                                <p className="mt-4 text-gray-600">Memproses gambar...</p>
+                            </div>
                         ) : (
                             <>
-                                <p className="text-xl text-gray-700 font-medium mb-2">
-                                    Drag & drop gambar atau klik untuk memilih
-                                </p>
-                                <p className="text-sm text-gray-500">PNG, JPG, JPEG, WebP, GIF, atau BMP (Maks. 20MB)</p>
+                                <Upload className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                                {isDragActive ? (
+                                    <p className="text-xl text-primary-600 font-medium">Lepaskan file di sini...</p>
+                                ) : (
+                                    <>
+                                        <p className="text-xl text-gray-700 font-medium mb-2">
+                                            Drag & drop gambar atau klik untuk memilih
+                                        </p>
+                                        <p className="text-sm text-gray-500">PNG, JPG, JPEG, WebP, GIF, BMP, atau HEIC (Maks. 20MB)</p>
+                                    </>
+                                )}
                             </>
                         )}
                     </div>

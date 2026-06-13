@@ -3,7 +3,6 @@ import { useDropzone } from 'react-dropzone';
 import axios from 'axios';
 import { Upload, Download, RefreshCw, AlertCircle } from 'lucide-react';
 import LoadingSpinner from './LoadingSpinner';
-import heic2any from 'heic2any';
 
 export default function ImageConverter() {
     const [originalImage, setOriginalImage] = useState(null);
@@ -21,6 +20,7 @@ export default function ImageConverter() {
             if (file.type === 'image/heic' || file.type === 'image/heif' || file.name.toLowerCase().endsWith('.heic') || file.name.toLowerCase().endsWith('.heif')) {
                 setLoading(true);
                 try {
+                    const heic2any = (await import('heic2any')).default;
                     const convertedBlob = await heic2any({
                         blob: file,
                         toType: "image/jpeg",
@@ -38,7 +38,7 @@ export default function ImageConverter() {
                     reader.readAsDataURL(blob);
                 } catch (err) {
                     console.error("HEIC conversion error:", err);
-                    setError('Gagal membaca file HEIC.');
+                    setError(`Gagal membaca file HEIC: ${err.message || 'Format tidak didukung atau memori penuh.'}`);
                     setLoading(false);
                 }
             } else {

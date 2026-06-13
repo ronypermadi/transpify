@@ -37,9 +37,34 @@ export default function ImageConverter() {
                     };
                     reader.readAsDataURL(blob);
                 } catch (err) {
-                    console.error("HEIC conversion error:", err);
-                    setError(`Gagal membaca file HEIC: ${err.message || 'Format tidak didukung atau memori penuh.'}`);
-                    setLoading(false);
+                    console.error("HEIC conversion error on client:", err);
+                    
+                    // Fallback to server side
+                    try {
+                        const reader = new FileReader();
+                        reader.onload = async () => {
+                            try {
+                                const response = await axios.post('/api/convert-format', {
+                                    image: reader.result,
+                                    format: 'jpeg',
+                                    isHeicInput: true
+                                });
+                                setOriginalImage(response.data.image);
+                                setProcessedImage(null);
+                                setError('');
+                            } catch (serverErr) {
+                                console.error('Server HEIC error:', serverErr);
+                                const serverMsg = serverErr.response?.data?.error || serverErr.message;
+                                setError(`Gagal membaca file HEIC (Format tidak didukung di frontend maupun backend): ${serverMsg}`);
+                            } finally {
+                                setLoading(false);
+                            }
+                        };
+                        reader.readAsDataURL(file);
+                    } catch (fallbackErr) {
+                        setError(`Gagal memproses file HEIC.`);
+                        setLoading(false);
+                    }
                 }
             } else {
                 const reader = new FileReader();

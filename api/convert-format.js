@@ -1,4 +1,5 @@
 import sharp from 'sharp';
+import heicConvert from 'heic-convert';
 
 export default async function handler(req, res) {
     if (req.method !== 'POST') {
@@ -6,7 +7,7 @@ export default async function handler(req, res) {
     }
 
     try {
-        const { image, format } = req.body;
+        const { image, format, isHeicInput } = req.body;
 
         if (!image) {
             return res.status(400).json({ error: 'No image provided' });
@@ -18,7 +19,20 @@ export default async function handler(req, res) {
 
         // Convert base64 to buffer
         const base64Data = image.replace(/^data:image\/\w+;base64,/, '');
-        const buffer = Buffer.from(base64Data, 'base64');
+        let buffer = Buffer.from(base64Data, 'base64');
+
+        if (isHeicInput || image.startsWith('data:image/heic') || image.startsWith('data:image/heif')) {
+            try {
+                buffer = await heicConvert({
+                    buffer: buffer,
+                    format: 'JPEG',
+                    quality: 1
+                });
+            } catch (heicErr) {
+                console.error('Backend heic-convert error:', heicErr);
+                return res.status(400).json({ error: 'Format HEIC tidak didukung oleh backend decoder.' });
+            }
+        }
 
         // Initialize sharp instance with auto-rotation based on EXIF
         let sharpInstance = sharp(buffer).rotate();
@@ -94,7 +108,7 @@ export default async function handler(req, res) {
 export const config = {
     api: {
         bodyParser: {
-            sizeLimit: '10mb',
+            sizeLimit: '25mb',
         },
     },
 };

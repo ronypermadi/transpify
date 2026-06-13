@@ -18,7 +18,7 @@ export default async function handler(req, res) {
         }
 
         // Convert base64 to buffer
-        const base64Data = image.replace(/^data:image\/\w+;base64,/, '');
+        const base64Data = image.includes(';base64,') ? image.split(';base64,').pop() : image;
         let buffer = Buffer.from(base64Data, 'base64');
 
         if (isHeicInput || image.startsWith('data:image/heic') || image.startsWith('data:image/heif')) {

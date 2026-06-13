@@ -95,6 +95,31 @@ export default function ImageConverter() {
         maxSize: 20971520, // 20MB
     });
 
+    const convertClientSide = (dataUrl, format) => {
+        return new Promise((resolve, reject) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                canvas.width = img.width;
+                canvas.height = img.height;
+                const ctx = canvas.getContext('2d');
+                
+                // Isi background putih untuk JPEG agar transparan tidak jadi hitam
+                if (format === 'jpeg') {
+                    ctx.fillStyle = '#FFFFFF';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                }
+                
+                ctx.drawImage(img, 0, 0);
+                const quality = format === 'png' ? undefined : 0.95;
+                const resultDataUrl = canvas.toDataURL(`image/${format}`, quality);
+                resolve(resultDataUrl);
+            };
+            img.onerror = () => reject(new Error('Gagal me-render gambar'));
+            img.src = dataUrl;
+        });
+    };
+
     const convertImages = async () => {
         setIsConverting(true);
         const pendingImages = images.filter(img => img.status !== 'done' && !img.error && img.originalUrl);
@@ -104,13 +129,28 @@ export default function ImageConverter() {
             setImages(prev => prev.map(p => p.id === img.id ? { ...p, status: 'processing', error: null } : p));
 
             try {
-                const response = await axios.post('/api/convert-format', {
-                    image: img.originalUrl,
-                    format: outputFormat,
-                });
-                setImages(prev => prev.map(p => p.id === img.id ? { ...p, status: 'done', processedUrl: response.data.image } : p));
+                let convertedUrl;
+                
+                // AVIF membutuhkan backend API (Vercel)
+                if (outputFormat === 'avif') {
+                    // Cegah 413 Payload Too Large Vercel (Maks ~4.5MB atau base64 ~6 juta karakter)
+                    if (img.originalUrl.length > 6000000) {
+                        throw new Error('Terlalu besar (>4.5MB). Gunakan WebP!');
+                    }
+                    const response = await axios.post('/api/convert-format', {
+                        image: img.originalUrl,
+                        format: outputFormat,
+                    });
+                    convertedUrl = response.data.image;
+                } else {
+                    // PNG, JPEG, WEBP di-render secara instan di browser! (Bypass 413 Error)
+                    convertedUrl = await convertClientSide(img.originalUrl, outputFormat);
+                }
+
+                setImages(prev => prev.map(p => p.id === img.id ? { ...p, status: 'done', processedUrl: convertedUrl } : p));
             } catch (err) {
-                setImages(prev => prev.map(p => p.id === img.id ? { ...p, status: 'error', error: 'Gagal mengonversi' } : p));
+                const errorMsg = err.response?.data?.error || err.message || 'Gagal mengonversi';
+                setImages(prev => prev.map(p => p.id === img.id ? { ...p, status: 'error', error: errorMsg } : p));
             }
         }
         setIsConverting(false);
